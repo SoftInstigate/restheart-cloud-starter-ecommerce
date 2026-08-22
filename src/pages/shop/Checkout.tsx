@@ -25,6 +25,7 @@ export default function Checkout() {
   const cart = useCart();
 
   const [email, setEmail] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -116,10 +117,37 @@ export default function Checkout() {
                 <Link to="/auth/login">sign in</Link> if you'd rather keep your order history.
               </p>
             </div>
+
+            {/*
+              A guest never meets the consents gate: that gate works by stamping
+              the *user document*, and a guest has none. So the acceptance has
+              to be collected here instead.
+
+              Be clear about what this is: a client-side checkbox. Unlike the
+              gate — which is backed by a Guards rule answering 451 — nothing on
+              the server enforces this, and the order carries no record of it,
+              because the checkout interceptor rejects any body key other than
+              `items` and `email`. See the README's open points.
+            */}
+            <label className="checkout-consents">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={e => setAcceptedTerms(e.target.checked)}
+              />
+              <span>
+                I have read and accept the{' '}
+                <a href="/terms.html" target="_blank" rel="noreferrer">Terms of Service</a> and the{' '}
+                <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy Policy</a>
+              </span>
+            </label>
           </>
         ) : (
           <p className="muted">
-            Ordering as <strong>{auth.user?._id}</strong>.
+            Ordering as <strong>{auth.user?._id}</strong>. You accepted the{' '}
+            <a href="/terms.html" target="_blank" rel="noreferrer">Terms</a> and{' '}
+            <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy Policy</a> when you
+            signed up.
           </p>
         )}
 
@@ -127,7 +155,11 @@ export default function Checkout() {
 
         <div className="form-row">
           <Link to="/shop/cart" className="btn-secondary">Back to cart</Link>
-          <button type="submit" className="btn-primary" disabled={submitting}>
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={submitting || (isGuest && !acceptedTerms)}
+          >
             {submitting ? 'Starting checkout…' : 'Pay with Stripe'}
           </button>
         </div>

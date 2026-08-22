@@ -133,6 +133,27 @@
   margin-top: 1.5rem;
 }
 
+/* Self-contained on purpose: the consents gate's stylesheet happens to be
+   loaded app-wide, but this must not depend on that. */
+.checkout-consents {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  margin: 1.25rem 0;
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+.checkout-consents input {
+  /* Nudged down so the box aligns with the first line of text, not its box. */
+  margin-top: 0.15em;
+  width: 1.05em;
+  height: 1.05em;
+  flex: none;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
 .order-return h1 {
   margin-bottom: 0.5rem;
 }

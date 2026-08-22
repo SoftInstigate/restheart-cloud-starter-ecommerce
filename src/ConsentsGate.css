@@ -1,0 +1,68 @@
+/* No close button and no backdrop click: the only ways out are accepting or
+   signing out. Above the header (100), the dropdown (200) and the navigation
+   progress bar (300). */
+.consents-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgb(0 0 0 / 0.55);
+}
+
+.consents-card {
+  width: min(32rem, 100%);
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-popup);
+}
+
+.consents-card p {
+  color: var(--color-text-muted);
+}
+
+.consents-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+.consents-check input {
+  /* Nudged down so the box aligns with the first line of text, not its box. */
+  margin-top: 0.15em;
+  width: 1.05em;
+  height: 1.05em;
+  flex: none;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.consents-card .btn-primary:disabled {
+  cursor: not-allowed;
+}
+
+.consents-card h1 {
+  margin-top: 0;
+}
+
+.consents-card .btn-plain {
+  display: block;
+  margin-top: var(--space-3);
+  padding: 0;
+  font: inherit;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.consents-card .btn-plain:hover {
+  color: var(--color-text);
+}

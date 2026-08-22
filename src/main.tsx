@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { RhAuthProvider, RhPaymentsProvider } from '@restheart-cloud/kit-react';
 import { App } from './App';
 import { CartProvider } from './shop/cart';
+import { consentsOnError } from './consents-signal';
 import { environment } from './environments/environment';
 import './styles.css';
 
@@ -11,9 +12,15 @@ import './styles.css';
 // adapter touch `/stripe/*` at all — products mode (catalog and orders) would
 // work without it, but the flag also keeps subscription state available on a
 // service that has both modes on.
+//
+// `onError` feeds the consents gate. Sharing it with the payments provider is
+// deliberate: a `451` on an order is the same refusal as a `451` on
+// `/users/me`, and should raise the same overlay rather than surface as a
+// checkout failure the buyer cannot act on.
 const config = {
   apiBaseUrl: environment.apiUrl,
   payments: true,
+  onError: consentsOnError,
 };
 
 createRoot(document.getElementById('root')!).render(

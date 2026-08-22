@@ -5,6 +5,7 @@ import { environment } from './environments/environment';
 import { setJustSignedUp } from './just-signed-up';
 import { routes } from './routes';
 import { ConfigPage } from './ConfigPage';
+import { ConsentsGate } from './ConsentsGate';
 
 function consumeFragmentToken(): void {
   const hash = window.location.hash;
@@ -51,5 +52,12 @@ export function App() {
     return <ConfigPage apiUrl={environment.apiUrl} />;
   }
 
-  return element;
+  // Above the router on purpose: a blocked user cannot pass AuthGuard, because
+  // the session check is one of the requests the rule refuses.
+  //
+  // The gate only ever fires for a signed-in user — a guest holds no token, so
+  // `checkSession` short-circuits without a request and never sees a `451`.
+  // The shop stays browsable and buyable for them, which is the point of
+  // having it outside AuthGuard.
+  return <ConsentsGate>{element}</ConsentsGate>;
 }

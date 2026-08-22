@@ -10,14 +10,21 @@ Everything the auth starter does — signup, login, OAuth, invitations, team swi
 
 ## What's included
 
+**The shop** — public, no account required:
+
+- Catalog from the service's own collection, with `purchasable: false` items shown but not sellable
+- Cart in `localStorage`
+- Checkout **two ways**: signed in (the token identifies the buyer) or as a guest (email only)
+- Order return page that polls with `waitForOrder`, because the redirect back from Stripe races the webhook
+- Amounts formatted with `formatPrice` — never `amount / 100`
+
+**From the auth starter**, all still working:
+
 - Signup, login, logout — email/password and Google/GitHub OAuth
 - Email verification, password reset
-- Team invitations — one page (`/invitations/accept`) branching into a new-user "set password" form (calls `PATCH /auth/activate`) or an existing-user "log in and accept" form
-- Team switcher — shown only when the user belongs to more than one team
-- Authenticated shell with placeholder for your app content
+- Consents gate — registered users must accept the Terms and Privacy Policy before the app serves them anything
+- Team invitations, team switcher
 - Lazy-loaded routes with code splitting
-
-![RESTHeart Cloud Starter Home Page](./starter-home-page.png)
 
 ## Prerequisites
 
@@ -95,17 +102,28 @@ src/
   environments/
     environment.ts        ← apiUrl + feature flags
   routes.tsx              ← route map, feature-flag gating, lazy loading
-  App.tsx                 ← fragment token capture + config screen
-  main.tsx                ← RhAuthProvider + BrowserRouter
+  App.tsx                 ← fragment token capture + config screen + consents gate
+  main.tsx                ← RhAuthProvider + RhPaymentsProvider + CartProvider
+  consents-signal.ts      ← raises a flag on any 451
+  ConsentsGate.tsx        ← acceptance overlay, above the router
   theme hook              ← light/dark toggle, persisted (in Shell.tsx)
   ui/alert/               ← the one shared feedback component
+  shop/
+    cart.tsx              ← cart state, persisted; the app's job, not the kit's
+    pending-order.ts      ← carries order id + secret across the Stripe redirect
   pages/
+    shop/                 ← catalog, cart, checkout, order return
     shell/                ← authenticated frame: header, nav, user menu
     home/                 ← PLACEHOLDER showcase — replace with your content
     auth/                 ← login, signup, verify, forgot/reset password
     invitations/accept/   ← one page, three flows (see below)
     teams/                ← list, detail (members/invites/settings), new
     account/              ← profile + change password
+public/
+  terms.html              ← PLACEHOLDER — replace with your own
+  privacy.html            ← PLACEHOLDER — replace with your own
+scripts/
+  seed-catalog.mjs        ← fills an empty catalog with demo products
 ```
 
 ### Route map
@@ -117,7 +135,12 @@ src/
 | `/auth/verify` | `PublicGuard` | `emailRegistration` |
 | `/auth/forgot-password`, `/auth/reset-password` | `PublicGuard` | `passwordReset` |
 | `/invitations/accept` | **none** — works signed-in or out | `teamInvitations` |
+| `/shop`, `/shop/cart`, `/shop/checkout`, `/shop/order` | **none** — a guest must be able to buy | always |
 | `/home`, `/teams`, `/teams/new`, `/teams/:id`, `/account` | `AuthGuard` | always |
+
+The shop routes sit outside `AuthGuard` on purpose: the whole point of guest checkout is that
+it works without an account. `/shop/order` must match the service's configured
+`success-url` — see [Open points](#open-points).
 
 Feature flags live in `src/environments/environment.ts` and must match your service's
 **Sign-up Mgmt → Features** toggles. A flag that's off removes the route *and* the UI that
@@ -212,17 +235,94 @@ knowing about in advance.
 
 ### Gating on consents
 
-A worked example of the above — every user must accept the current Terms of Service and
-Privacy Policy before the app serves them anything — lives on the **`feat/consents-gate`**
-branch, with the server-side setup in
+Registered users must accept the current Terms of Service and Privacy Policy before the app
+serves them anything. This is on by default here (it came from the starter's
+`feat/consents-gate` branch), with the server-side setup in
 [the tutorial](https://cloud.restheart.com/blog).
 
-```bash
-git checkout feat/consents-gate
-```
+How it works, in three pieces:
 
-It is a branch and not the default on purpose: which consents you collect, and when you
-re-ask, are product decisions.
+| File | Role |
+|---|---|
+| `src/consents-signal.ts` | `config.onError` watches for a `451` and raises a flag |
+| `src/ConsentsGate.tsx` | Sits above the router; swaps the whole app for the acceptance form while the flag is up |
+| `public/terms.html`, `public/privacy.html` | Placeholder documents — replace with your own |
+
+The `451` comes from the Guards rule on the service, and `/users/me` is one of the requests it
+refuses — so restoring the session is what trips the gate. There is nothing to probe.
+
+The gate sits **above** the router deliberately: a blocked user cannot get past `AuthGuard`
+either, so a gate placed inside the app would be unreachable.
+
+The overlay is user experience, not enforcement. Remove it with the dev tools and every
+request still comes back `451`; the rule lives on the server.
+
+**Guests are a separate matter.** The gate stamps the *user document*, and a guest has none —
+so a guest buying without an account never meets it. The checkout page collects their
+acceptance with its own checkbox instead. See [Open points](#open-points) for what that does
+and does not guarantee.
+
+## Open points
+
+Things this example does not settle. Read before copying it into a real shop.
+
+### The service must be configured to match
+
+Three settings have to line up or the flow breaks in ways that are not obvious from the client:
+
+| Setting | Must be | Symptom when wrong |
+|---|---|---|
+| `stripeConfig.products.success-url` | ends in `/shop/order` | the buyer lands on a 404 after paying |
+| ACL: `GET /catalog` | readable anonymously | the shop is empty, no error |
+| ACL: `POST /orders` | allowed anonymously with an email | guest checkout answers `401` |
+
+The collection names are configurable server-side (`products.catalog-collection`,
+`products.orders-collection`); if yours are renamed, set them in
+`src/environments/environment.ts` — the kit takes them as parameters, it does not assume.
+
+### The order id survives the Stripe round trip in localStorage
+
+The success URL is configured **on the service**, and the only placeholder Stripe substitutes
+is `{CHECKOUT_SESSION_ID}` — not the order `_id`, and not the `secret`. A guest has no session
+either, so nothing server-side can identify their order when they come back. The client is
+therefore the only place that can remember, and `src/shop/pending-order.ts` writes both to
+`localStorage` before redirecting.
+
+This works for the common case and fails in three: `localStorage` blocked or full, a private
+window closed and reopened, and a payment finished in a different browser from the one that
+started it.
+
+The fix belongs on the server — teaching the `stripe` plugin to interpolate `{ORDER_ID}` /
+`{ORDER_SECRET}` into the configured success URL. It is a small change (`OrdersCheckoutInterceptor`
+already generates both locally, just *after* creating the Stripe session instead of before),
+but it is not done. If it is done, put them in the URL **fragment**, not the query string: a
+fragment is never sent to the server, so the secret stays out of access logs and `Referer`
+headers. That is the same trick this app already uses for the OAuth bearer token.
+
+### Guest consent is a checkbox, not a record
+
+A registered user's acceptance is enforced by a Guards rule and stamped on their user
+document. A guest's is neither. The checkbox on the checkout page gates the button and nothing
+else, and **the order carries no record that it was ticked** — the checkout interceptor rejects
+any body key other than `items` and `email`, so there is nowhere to put it.
+
+For a real shop this is not enough. Options, none implemented here: widen the interceptor to
+accept and store a consent stamp, record it against the email in a separate collection, or
+require an account to buy at all.
+
+### Amounts assume one currency per cart
+
+`formatPrice` is per-line and correct, but the cart subtotal adds line amounts together and
+labels them with the first line's currency. A catalog that mixes currencies would show a
+meaningless total. Stripe would reject the session anyway, so the failure is loud — but the
+cart should refuse the mix earlier.
+
+### Not covered
+
+- **Inventory** — the plugin has an inventory collection; this example ignores stock entirely.
+- **Shipping and tax** — left to Stripe's Checkout configuration.
+- **Order history** — a signed-in buyer's past orders are readable via the orders collection, but there is no page for them.
+- **Refunds** — `amount_refunded` is on the `Order` type and unused here.
 
 ## Packages used
 
