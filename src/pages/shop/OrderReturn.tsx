@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { usePayments, formatPrice, type Order } from '@restheart-cloud/kit-react';
+import {
+  usePayments,
+  formatPrice,
+  readOrderRef,
+  clearOrderRef,
+  type Order,
+} from '@restheart-cloud/kit-react';
 import { environment } from '../../environments/environment';
 import { clearPendingOrder, readPendingOrder } from '../../shop/pending-order';
 import './Shop.css';
@@ -30,8 +36,26 @@ export default function OrderReturn() {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    const pending = readPendingOrder();
-    if (!pending) {
+    // Two ways the reference can arrive, in order of preference.
+    //
+    // 1. The service interpolated `{ORDER_ID}`/`{ORDER_SECRET}` into its
+    //    configured success URL, and Stripe brought them back. This survives a
+    //    cleared localStorage and a different browser.
+    // 2. Otherwise, what we stashed before redirecting.
+    //
+    // The fallback stays because the placeholders are opt-in: a service
+    // configured before they existed still works, it just loses case 1.
+    const fromUrl = readOrderRef();
+    if (fromUrl) {
+      // Out of the address bar immediately — the secret is a credential, and a
+      // URL gets screenshotted, shared and bookmarked.
+      clearOrderRef();
+    }
+
+    const stashed = readPendingOrder();
+    const ref = fromUrl ?? (stashed ? { id: stashed.id, secret: stashed.secret } : null);
+
+    if (!ref) {
       setStatus('missing');
       return;
     }
@@ -39,7 +63,7 @@ export default function OrderReturn() {
     const controller = new AbortController();
 
     payments
-      .waitForOrder(pending.id, pending.secret, {
+      .waitForOrder(ref.id, ref.secret, {
         collection: environment.catalogOrdersCollection,
         timeoutMs: 30_000,
         intervalMs: 1_000,

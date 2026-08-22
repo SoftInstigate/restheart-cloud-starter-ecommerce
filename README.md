@@ -272,7 +272,7 @@ Three settings have to line up or the flow breaks in ways that are not obvious f
 
 | Setting | Must be | Symptom when wrong |
 |---|---|---|
-| `stripeConfig.products.success-url` | ends in `/shop/order` | the buyer lands on a 404 after paying |
+| `stripeConfig.products.success-url` | path `/shop/order`, ideally with the `{ORDER_ID}`/`{ORDER_SECRET}` fragment (below) | the buyer lands on a 404 after paying |
 | ACL: `GET /catalog` | readable anonymously | the shop is empty, no error |
 | ACL: `POST /orders` | allowed anonymously with an email | guest checkout answers `401` |
 
@@ -280,24 +280,30 @@ The collection names are configurable server-side (`products.catalog-collection`
 `products.orders-collection`); if yours are renamed, set them in
 `src/environments/environment.ts` — the kit takes them as parameters, it does not assume.
 
-### The order id survives the Stripe round trip in localStorage
+### Configure the success URL to carry the order reference
 
-The success URL is configured **on the service**, and the only placeholder Stripe substitutes
-is `{CHECKOUT_SESSION_ID}` — not the order `_id`, and not the `secret`. A guest has no session
-either, so nothing server-side can identify their order when they come back. The client is
-therefore the only place that can remember, and `src/shop/pending-order.ts` writes both to
-`localStorage` before redirecting.
+Stripe substitutes only `{CHECKOUT_SESSION_ID}` in the success URL, so on its own the return
+page does not know *which* order it is showing — and a guest has no session for the server to
+recognise them by.
 
-This works for the common case and fails in three: `localStorage` blocked or full, a private
-window closed and reopened, and a payment finished in a different browser from the one that
-started it.
+RESTHeart's `stripe` plugin interpolates `{ORDER_ID}` and `{ORDER_SECRET}` if you put them
+there. **Configure it in the fragment**, so the secret never reaches a server log or a
+`Referer` header:
 
-The fix belongs on the server — teaching the `stripe` plugin to interpolate `{ORDER_ID}` /
-`{ORDER_SECRET}` into the configured success URL. It is a small change (`OrdersCheckoutInterceptor`
-already generates both locally, just *after* creating the Stripe session instead of before),
-but it is not done. If it is done, put them in the URL **fragment**, not the query string: a
-fragment is never sent to the server, so the secret stays out of access logs and `Referer`
-headers. That is the same trick this app already uses for the OAuth bearer token.
+```
+/stripeConfig/products/success-url ->
+  "https://your-app.example.com/shop/order#order={ORDER_ID}&secret={ORDER_SECRET}"
+```
+
+`OrderReturn.tsx` reads it with `readOrderRef()` and strips it from the address bar with
+`clearOrderRef()` right away.
+
+**If you skip this**, the app falls back to `src/shop/pending-order.ts`, which stashes the
+reference in `localStorage` before redirecting. That covers the common case and fails in
+three: `localStorage` blocked or full, a private window closed and reopened, and a payment
+finished in a different browser from the one that started it. The fallback stays in the code
+on purpose — the placeholders are opt-in, and a service configured before they existed still
+works.
 
 ### Guest consent is a checkbox, not a record
 
