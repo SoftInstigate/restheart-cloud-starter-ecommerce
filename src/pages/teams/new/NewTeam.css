@@ -1,0 +1,10 @@
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.link-btn {
+  text-decoration: none;
+  display: inline-flex;
+}

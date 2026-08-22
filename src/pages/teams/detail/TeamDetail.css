@@ -1,0 +1,104 @@
+.member-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.member-row.expired {
+  opacity: 0.6;
+}
+
+.member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.member-name {
+  font-weight: 500;
+  font-size: var(--text-md);
+}
+
+.member-email {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.member-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.role-select {
+  font-size: var(--text-sm);
+  padding: var(--space-1) var(--space-2);
+}
+
+.team-role {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-transform: capitalize;
+}
+
+.invite-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.danger-zone {
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: var(--border-width) solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.danger-zone-text strong {
+  display: block;
+  font-size: var(--text-md);
+  margin-bottom: 0.125rem;
+}
+
+.delete-confirm {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: var(--text-base);
+}
+
+@media (max-width: 560px) {
+  .member-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+
+  .member-actions {
+    justify-content: space-between;
+  }
+
+  .danger-zone {
+    align-items: stretch;
+  }
+}
