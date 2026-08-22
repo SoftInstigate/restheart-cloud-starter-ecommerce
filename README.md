@@ -1,8 +1,12 @@
-# RESTHeart Cloud Starter — React
+# RESTHeart Cloud Starter — Ecommerce (React)
 
-A React starter built on [`@restheart-cloud/kit-react`](https://github.com/SoftInstigate/restheart-cloud-kit/tree/main/packages/kit-react). Implements all RESTHeart Cloud auth and multi-tenancy flows out of the box — fork it, point it at your RESTHeart Cloud service, and start building your app.
+An ecommerce example built on [`@restheart-cloud/kit-react`](https://github.com/SoftInstigate/restheart-cloud-kit/tree/main/packages/kit-react), seeded from the auth starter. It exercises the kit's **products mode** end to end: catalog, order creation, Stripe Checkout redirect, and the order return page that has to outlive the webhook race.
 
-Works for multi-tenant SaaS (invitations, team switcher) and simpler apps (auth only).
+Everything the auth starter does — signup, login, OAuth, invitations, team switcher — still works here; the shop is layered on top.
+
+> **Status: unpublished kit.** This app consumes `@restheart-cloud/kit` and
+> `@restheart-cloud/kit-react` through `npm link`, not from npm. See
+> [Local kit development](#local-kit-development) before running it.
 
 ## What's included
 
@@ -17,8 +21,45 @@ Works for multi-tenant SaaS (invitations, team switcher) and simpler apps (auth 
 
 ## Prerequisites
 
-1. **A RESTHeart Cloud service** — [create one at cloud.restheart.com](https://cloud.restheart.com). Use a **free** service for development, a **shared** service (or higher) for production.
+1. **A RESTHeart Cloud service with the `stripe` plugin enabled** — the shop pages call `/orders` and the catalog collection. A service without the plugin answers `404` on those paths. [Create one at cloud.restheart.com](https://cloud.restheart.com).
 2. Node.js 18+
+
+## Local kit development
+
+The kit packages are not published yet, so this app links them from the sibling
+`restheart-cloud-kit` checkout. Run this once:
+
+```bash
+# 1. Register both kit packages globally
+cd ../restheart-cloud-kit/packages/kit       && npm link
+cd ../kit-react                              && npm link
+
+# 2. Point this app at them
+cd ../../../restheart-cloud-starter-ecommerce
+npm install
+npm link @restheart-cloud/kit @restheart-cloud/kit-react
+```
+
+**After every change to the kit, rebuild it** — this app consumes `dist/`, not the
+TypeScript sources:
+
+```bash
+cd ../restheart-cloud-kit && npm run build
+```
+
+Vite picks the rebuild up without a restart, because the linked packages are excluded
+from dependency pre-bundling in `vite.config.ts`.
+
+### Why `vite.config.ts` has extra settings
+
+A linked package resolves *its own* imports from its real path, so `react` would come from
+the kit monorepo (19.x) instead of this app (18.x). Two Reacts in one tree throw
+"Invalid hook call" on the first hook the kit runs. `resolve.dedupe` forces a single copy.
+`optimizeDeps.exclude` and `server.fs.allow` are the other two things linking needs.
+
+**All of this comes out once the kit is published:** drop the three settings from
+`vite.config.ts`, run `npm unlink @restheart-cloud/kit @restheart-cloud/kit-react`, and
+`npm install @restheart-cloud/kit-react@<version>`.
 
 ## Setup
 
