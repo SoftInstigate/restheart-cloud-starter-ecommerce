@@ -15,6 +15,10 @@ const Teams = lazy(() => import('./pages/teams/Teams'));
 const NewTeam = lazy(() => import('./pages/teams/new/NewTeam'));
 const TeamDetail = lazy(() => import('./pages/teams/detail/TeamDetail'));
 const Account = lazy(() => import('./pages/account/Account'));
+const Shop = lazy(() => import('./pages/shop/Shop'));
+const Cart = lazy(() => import('./pages/shop/Cart'));
+const Checkout = lazy(() => import('./pages/shop/Checkout'));
+const OrderReturn = lazy(() => import('./pages/shop/OrderReturn'));
 
 const { emailRegistration, passwordReset, oauthLogin, teamInvitations } = environment.features;
 
@@ -97,6 +101,44 @@ export const routes: RouteObject[] = [
         },
       ]
     : []),
+  // The shop is deliberately outside AuthGuard: a guest must be able to browse,
+  // pay, and see their receipt without ever creating an account. Whether the
+  // service actually permits an anonymous `POST /orders` is its ACL's call —
+  // Checkout surfaces the 401 if it does not.
+  {
+    path: 'shop',
+    element: (
+      <SuspenseWrapper>
+        <Shop />
+      </SuspenseWrapper>
+    ),
+  },
+  {
+    path: 'shop/cart',
+    element: (
+      <SuspenseWrapper>
+        <Cart />
+      </SuspenseWrapper>
+    ),
+  },
+  {
+    path: 'shop/checkout',
+    element: (
+      <SuspenseWrapper>
+        <Checkout />
+      </SuspenseWrapper>
+    ),
+  },
+  {
+    // Stripe returns the buyer here. The path must match
+    // `stripeConfig.products.success-url` on the service.
+    path: 'shop/order',
+    element: (
+      <SuspenseWrapper>
+        <OrderReturn />
+      </SuspenseWrapper>
+    ),
+  },
   {
     path: '/',
     element: (

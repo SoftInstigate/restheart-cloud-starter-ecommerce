@@ -1,0 +1,150 @@
+.shop-page {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+.shop-narrow {
+  max-width: 40rem;
+}
+
+.shop-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.shop-header h1 {
+  margin: 0;
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 1.25rem;
+}
+
+.shop-item {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.shop-item-image {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: var(--color-surface-sunken);
+}
+
+.shop-item-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.5rem;
+  padding: 1rem;
+}
+
+.shop-item-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.shop-item-desc {
+  flex: 1;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.shop-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.shop-item-price {
+  font-weight: 600;
+}
+
+/* ── Cart ─────────────────────────────────────────────────────────────── */
+
+.cart-lines {
+  list-style: none;
+  margin: 1.5rem 0;
+  padding: 0;
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.cart-line {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.cart-lines-compact .cart-line {
+  padding: 0.625rem 0;
+}
+
+.cart-line-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.cart-line-name {
+  font-weight: 500;
+}
+
+.cart-line-qty input {
+  width: 4.5rem;
+}
+
+.cart-line-total {
+  min-width: 5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cart-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0 1rem;
+  font-size: 1.125rem;
+}
+
+.cart-note,
+.checkout-note {
+  font-size: 0.8125rem;
+}
+
+.checkout-form {
+  margin-top: 1.5rem;
+}
+
+.order-return h1 {
+  margin-bottom: 0.5rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
