@@ -268,17 +268,38 @@ Things this example does not settle. Read before copying it into a real shop.
 
 ### The service must be configured to match
 
-Three settings have to line up or the flow breaks in ways that are not obvious from the client:
+Four settings have to line up or the flow breaks in ways that are not obvious from the client:
 
 | Setting | Must be | Symptom when wrong |
 |---|---|---|
 | `stripeConfig.products.success-url` | path `/shop/order`, ideally with the `{ORDER_ID}`/`{ORDER_SECRET}` fragment (below) | the buyer lands on a 404 after paying |
 | ACL: `GET /catalog` | readable anonymously | the shop is empty, no error |
 | ACL: `POST /orders` | allowed anonymously with an email | guest checkout answers `401` |
+| ACL: `GET /orders/{id}` | allowed anonymously, filtered on `?secret=` | the buyer pays, then the return page answers `401` |
 
 The collection names are configurable server-side (`products.catalog-collection`,
 `products.orders-collection`); if yours are renamed, set them in
 `src/environments/environment.ts` — the kit takes them as parameters, it does not assume.
+
+#### The same list, as something you can run
+
+[`rh-plan.ts`](./rh-plan.ts) is that table as a configuration plan, plus the collections, the
+indexes and the `stripe` plugin's install and init:
+
+```bash
+npx @restheart-cloud/cli apply --plan ./rh-plan.ts --srv <srvId> --dry-run  # what is missing
+npx @restheart-cloud/cli apply --plan ./rh-plan.ts --srv <srvId>           # make it so
+```
+
+Every step is a check and an apply, so running it against a service that is already configured
+writes nothing and reports each step satisfied. Secrets are named rather than held:
+`STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are read from the environment at apply time, and
+only when the service does not already have them — so a re-run needs no secrets at all.
+
+> **Not runnable yet.** `@restheart-cloud/cli` is unpublished; it ships with the next kit release,
+> and this plan has not been run against a live service. Until then the table above is still the
+> procedure. The plan lives here anyway so it changes in the same commit as the code it
+> configures — which is the whole reason for it not being a checklist.
 
 ### Configure the success URL to carry the order reference
 
