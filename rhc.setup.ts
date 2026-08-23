@@ -7,8 +7,8 @@
  * afterwards. This is the same knowledge as code — runnable, re-runnable, and
  * diffable when it changes.
  *
- *   npx @restheart-cloud/cli apply --plan ./rh-plan.ts --srv <srvId>
- *   npx @restheart-cloud/cli apply --plan ./rh-plan.ts --srv <srvId> --dry-run
+ *   npx @restheart-cloud/cli setup --srv <srvId>
+ *   npx @restheart-cloud/cli setup --srv <srvId> --dry-run
  *
  * Every step is a `check` and an `apply`: run it against a configured service
  * and it writes nothing and reports each step satisfied. `--dry-run` runs the
@@ -18,7 +18,7 @@
  * the value is not already stored, so a re-run against a configured service
  * needs no secrets in the environment at all.
  */
-import { definePlan, step, fromEnv, isRedacted } from '@restheart-cloud/cli';
+import { defineSetup, step, fromEnv, isRedacted } from '@restheart-cloud/cli';
 import type { PluginConfig } from '@restheart-cloud/cli';
 
 /** Where this shop is served from, no trailing slash. */
@@ -44,7 +44,7 @@ const configured = (value: unknown) =>
 const products = (config: PluginConfig): PluginConfig =>
   (config['products'] as PluginConfig | undefined) ?? {};
 
-export default definePlan('Ecommerce', [
+export default defineSetup('Ecommerce', [
   step('stripe plugin installed', {
     check: ({ admin, srvId }) => admin.isPluginInstalled(srvId, 'stripe'),
     apply: ({ admin, srvId }) => admin.installPlugin(srvId, 'stripe'),

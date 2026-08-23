@@ -283,12 +283,12 @@ The collection names are configurable server-side (`products.catalog-collection`
 
 #### The same list, as something you can run
 
-[`rh-plan.ts`](./rh-plan.ts) is that table as a configuration plan, plus the collections, the
-indexes and the `stripe` plugin's install and init:
+[`rhc.setup.ts`](./rhc.setup.ts) is that table as a setup, plus the collections, the indexes and
+the `stripe` plugin's install and init:
 
 ```bash
-npx @restheart-cloud/cli apply --plan ./rh-plan.ts --srv <srvId> --dry-run  # what is missing
-npx @restheart-cloud/cli apply --plan ./rh-plan.ts --srv <srvId>           # make it so
+npx @restheart-cloud/cli setup --srv <srvId> --dry-run   # what is missing
+npx @restheart-cloud/cli setup --srv <srvId>             # make it so
 ```
 
 Every step is a check and an apply, so running it against a service that is already configured
@@ -297,8 +297,8 @@ writes nothing and reports each step satisfied. Secrets are named rather than he
 only when the service does not already have them — so a re-run needs no secrets at all.
 
 > **Not runnable yet.** `@restheart-cloud/cli` is unpublished; it ships with the next kit release,
-> and this plan has not been run against a live service. Until then the table above is still the
-> procedure. The plan lives here anyway so it changes in the same commit as the code it
+> and this setup has not been run against a live service. Until then the table above is still the
+> procedure. The setup lives here anyway so it changes in the same commit as the code it
 > configures — which is the whole reason for it not being a checklist.
 
 ### Configure the success URL to carry the order reference
