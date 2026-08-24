@@ -44,6 +44,82 @@ const configured = (value: unknown) =>
 const products = (config: PluginConfig): PluginConfig =>
   (config['products'] as PluginConfig | undefined) ?? {};
 
+/**
+ * A few demo products, so the shop has something to show.
+ *
+ * Lifted from `scripts/seed-catalog.mjs`, which this step replaces. That script
+ * needed `RH_API_URL` and the service's **root password**; a setup step needs
+ * neither, because `service` arrives already authenticated with the JWT `rhc`
+ * mints for itself. One manual step fewer, and one password fewer.
+ *
+ * ── Field names are the server's, not the kit's ──────────────────────────────
+ * `CatalogReader` validates the stored document in **snake_case**
+ * (`unit_amount`, `image_url`) and rejects the item outright if a required one
+ * is missing or the wrong type. The order request body is the other way round —
+ * `items: [{ productId, quantity }]` in camelCase. That asymmetry is real; do
+ * not "fix" it here.
+ *
+ * `unit_amount` is written as `$numberInt` on purpose: `CatalogReader` refuses a
+ * non-integer amount, and a bare JSON number is not guaranteed to land as an
+ * Int32.
+ */
+const money = (minorUnits: number) => ({ $numberInt: String(minorUnits) });
+
+const DEMO_PRODUCTS = [
+  {
+    _id: 'tee-classic',
+    type: 'physical',
+    name: 'Classic T-shirt',
+    description: 'Heavyweight cotton, unisex fit.',
+    image_url: 'https://placehold.co/600x600/1f2937/ffffff?text=T-shirt',
+    unit_amount: money(2500),
+    currency: 'eur',
+    purchasable: true,
+  },
+  {
+    _id: 'mug-enamel',
+    type: 'physical',
+    name: 'Enamel mug',
+    description: 'Holds 350ml of anything hot.',
+    image_url: 'https://placehold.co/600x600/0f766e/ffffff?text=Mug',
+    unit_amount: money(1450),
+    currency: 'eur',
+    purchasable: true,
+  },
+  {
+    _id: 'stickers-pack',
+    type: 'physical',
+    name: 'Sticker pack',
+    description: 'Twelve die-cut vinyl stickers.',
+    image_url: 'https://placehold.co/600x600/7c3aed/ffffff?text=Stickers',
+    unit_amount: money(600),
+    currency: 'eur',
+    purchasable: true,
+  },
+  {
+    _id: 'guide-pdf',
+    type: 'digital',
+    name: 'The RESTHeart guide (PDF)',
+    description: 'Downloadable, 180 pages.',
+    image_url: 'https://placehold.co/600x600/b45309/ffffff?text=Guide',
+    unit_amount: money(1990),
+    currency: 'eur',
+    purchasable: true,
+  },
+  {
+    // Deliberately not for sale: proves the shop filters on `purchasable`
+    // instead of showing everything the collection happens to hold.
+    _id: 'hoodie-soldout',
+    type: 'physical',
+    name: 'Hoodie (sold out)',
+    description: 'Out of stock — listed but not purchasable.',
+    image_url: 'https://placehold.co/600x600/475569/ffffff?text=Hoodie',
+    unit_amount: money(5900),
+    currency: 'eur',
+    purchasable: false,
+  },
+];
+
 export default defineSetup('Ecommerce', [
   step('stripe plugin installed', {
     check: ({ admin, srvId }) => admin.isPluginInstalled(srvId, 'stripe'),
@@ -70,9 +146,12 @@ export default defineSetup('Ecommerce', [
       // the server replaces the whole document and restores the stored value for
       // any field still holding one. Diffing or stripping "empty-looking" fields
       // here would write bullets over the real Stripe key.
+      // No `enabled` here: it is not a field of the plugin's config schema, and
+      // enabling lives on the plugin document rather than inside its config —
+      // `installPlugin` already set it. Writing one here stored a key that did
+      // nothing and read, to anyone opening the config, as the switch.
       await admin.updatePluginConfig(srvId, 'stripe', {
         ...current,
-        enabled: true,
         'secret-key': configured(current['secret-key'])
           ? current['secret-key']
           : fromEnv('STRIPE_SECRET_KEY'),
@@ -143,5 +222,40 @@ export default defineSetup('Ecommerce', [
         // has no session for the server to recognise them by.
         mongo: { readFilter: { secret: "@qparams['secret']" } },
       }),
+  }),
+
+  step('sample catalog, if the shop is empty', {
+    /**
+     * The only step here that writes **content** rather than configuration, and
+     * the check says so: it asks whether the catalog holds anything at all, not
+     * whether these five products are present as written.
+     *
+     * That difference is the whole design. Checking for the exact products would
+     * mean a demo price you edited is overwritten on the next run, and a
+     * pipeline re-running the setup on every merge would reset a real shop to
+     * fake data for ever. Checking for emptiness seeds once and then never
+     * touches the collection again.
+     *
+     * Delete this step when the shop becomes yours. Configuration you want
+     * reapplied every time; content you do not.
+     */
+    async check({ service }) {
+      if (!(await service.collectionExists(CATALOG))) return false;
+      const res = await service.fetch(`/${CATALOG}?pagesize=1`);
+      return ((await res.json()) as unknown[]).length > 0;
+    },
+    async apply({ service }) {
+      if (!(await service.collectionExists(CATALOG))) {
+        await service.createCollection(CATALOG);
+      }
+      for (const product of DEMO_PRODUCTS) {
+        const { _id, ...doc } = product;
+        // wm=upsert so a half-finished seed can simply be run again.
+        await service.fetch(`/${CATALOG}/${encodeURIComponent(_id)}?wm=upsert`, {
+          method: 'PUT',
+          body: JSON.stringify(doc),
+        });
+      }
+    },
   }),
 ]);
