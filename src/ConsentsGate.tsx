@@ -58,7 +58,10 @@ export function ConsentsGate({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="consents-overlay" role="dialog" aria-modal="true" aria-labelledby="consents-title">
+    // Not `aria-modal`: this replaces the app rather than floating over it, and
+    // the footer below it is real content a screen reader should still reach.
+    // `aria-modal="true"` would hide everything outside this element.
+    <div className="consents-overlay" role="dialog" aria-labelledby="consents-title">
       <div className="consents-card">
         <h1 id="consents-title">Before you continue</h1>
         <p>Please review these documents and accept them to use the application.</p>

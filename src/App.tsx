@@ -60,14 +60,16 @@ export function App() {
   // `checkSession` short-circuits without a request and never sees a `451`.
   // The shop stays browsable and buyable for them, which is the point of
   // having it outside AuthGuard.
-  // The footer is inside the gate, so a blocked user sees the acceptance form
-  // and nothing else — including no seller details, which would be odd on a
-  // screen that is not the shop. The Terms and Privacy links they need are on
-  // the form itself.
+  //
+  // The footer sits outside the gate, so it is on every screen including the
+  // acceptance form. Being asked to accept someone's terms is the moment you
+  // most want to know whose they are — and the form's own Terms and Privacy
+  // links are not a reason to withhold the seller's identity, they are a second
+  // copy of two links that cost nothing to repeat.
   return (
-    <ConsentsGate>
-      {element}
+    <>
+      <ConsentsGate>{element}</ConsentsGate>
       <Footer />
-    </ConsentsGate>
+    </>
   );
 }
