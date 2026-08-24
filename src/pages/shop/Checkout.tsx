@@ -36,7 +36,7 @@ export default function Checkout() {
       <div className="shop-page shop-narrow">
         <h1>Checkout</h1>
         <p className="muted">Your cart is empty.</p>
-        <Link to="/shop" className="btn-primary">Browse the shop</Link>
+        <Link to="/" className="btn-primary">Browse the shop</Link>
       </div>
     );
   }
@@ -154,7 +154,7 @@ export default function Checkout() {
         {error && <div className="form-error" role="alert">{error}</div>}
 
         <div className="form-row">
-          <Link to="/shop/cart" className="btn-secondary">Back to cart</Link>
+          <Link to="/cart" className="btn-secondary">Back to cart</Link>
           <button
             type="submit"
             className="btn-primary"

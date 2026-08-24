@@ -11,7 +11,7 @@ export default function Cart() {
       <div className="shop-page shop-narrow">
         <h1>Your cart</h1>
         <p className="muted">Nothing in it yet.</p>
-        <Link to="/shop" className="btn-primary">Browse the shop</Link>
+        <Link to="/" className="btn-primary">Browse the shop</Link>
       </div>
     );
   }
@@ -66,8 +66,8 @@ export default function Cart() {
       </p>
 
       <div className="form-row">
-        <Link to="/shop" className="btn-secondary">Keep shopping</Link>
-        <Link to="/shop/checkout" className="btn-primary">Checkout</Link>
+        <Link to="/" className="btn-secondary">Keep shopping</Link>
+        <Link to="/checkout" className="btn-primary">Checkout</Link>
       </div>
     </div>
   );

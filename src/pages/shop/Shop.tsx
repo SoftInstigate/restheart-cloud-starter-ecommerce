@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { usePayments, formatPrice, type CatalogItem } from '@restheart-cloud/kit-react';
+import { useAuth, usePayments, formatPrice, type CatalogItem } from '@restheart-cloud/kit-react';
 import { environment } from '../../environments/environment';
 import { useCart } from '../../shop/cart';
 import './Shop.css';
@@ -8,6 +8,7 @@ import './Shop.css';
 export default function Shop() {
   const payments = usePayments();
   const cart = useCart();
+  const auth = useAuth();
 
   const [items, setItems] = useState<CatalogItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -72,14 +73,21 @@ export default function Shop() {
           <p className="eyebrow">Shop</p>
           <h1>Everything we make</h1>
         </div>
-        <Link to="/shop/cart" className="btn-secondary">
-          Cart{cart.totalItems > 0 ? ` (${cart.totalItems})` : ''}
-        </Link>
+        <div className="shop-header-actions">
+          {/* The shop is the front door now, so this is the only way in to the
+              account area — there is no other page a visitor passes through. */}
+          {auth.isAuthenticated
+            ? <Link to="/app" className="btn-secondary">My account</Link>
+            : <Link to="/auth/login" className="btn-secondary">Log in</Link>}
+          <Link to="/cart" className="btn-secondary">
+            Cart{cart.totalItems > 0 ? ` (${cart.totalItems})` : ''}
+          </Link>
+        </div>
       </header>
 
       {purchasable.length === 0 && (
         <p className="muted">
-          The catalog has no purchasable products yet. Run <code>node scripts/seed-catalog.mjs</code>.
+          The catalog has no purchasable products yet. Run <code>rhc setup --srv &lt;srvId&gt;</code>.
         </p>
       )}
 

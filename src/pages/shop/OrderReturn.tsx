@@ -136,7 +136,7 @@ export default function OrderReturn() {
             <strong>{formatPrice(order.amount_total, order.currency)}</strong>
           </div>
 
-          <Link to="/shop" className="btn-primary">Continue shopping</Link>
+          <Link to="/" className="btn-primary">Continue shopping</Link>
         </>
       )}
 
@@ -154,7 +154,7 @@ export default function OrderReturn() {
             <button type="button" className="btn-primary" onClick={() => window.location.reload()}>
               Check again
             </button>
-            <Link to="/shop" className="btn-secondary">Back to the shop</Link>
+            <Link to="/" className="btn-secondary">Back to the shop</Link>
           </div>
         </>
       )}
@@ -168,7 +168,7 @@ export default function OrderReturn() {
           <p className="muted">
             Nothing was charged. You can try again from the shop.
           </p>
-          <Link to="/shop" className="btn-primary">Back to the shop</Link>
+          <Link to="/" className="btn-primary">Back to the shop</Link>
         </>
       )}
 
@@ -179,7 +179,7 @@ export default function OrderReturn() {
             We have no record of a recent order in this browser. If you just paid, the receipt
             email has your order details.
           </p>
-          <Link to="/shop" className="btn-primary">Back to the shop</Link>
+          <Link to="/" className="btn-primary">Back to the shop</Link>
         </>
       )}
 
@@ -187,7 +187,7 @@ export default function OrderReturn() {
         <>
           <h1>Could not confirm the order</h1>
           <div className="form-error" role="alert">{message}</div>
-          <Link to="/shop" className="btn-secondary">Back to the shop</Link>
+          <Link to="/" className="btn-secondary">Back to the shop</Link>
         </>
       )}
     </div>

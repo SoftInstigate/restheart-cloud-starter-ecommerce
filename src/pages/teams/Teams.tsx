@@ -30,7 +30,7 @@ export default function Teams() {
     <section className="card">
       <div className="card-header">
         <h2>Your teams</h2>
-        <Link to="/teams/new" className="btn-secondary">+ New team</Link>
+        <Link to="/app/teams/new" className="btn-secondary">+ New team</Link>
       </div>
 
       {loading ? (

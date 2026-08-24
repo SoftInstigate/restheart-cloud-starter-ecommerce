@@ -162,12 +162,20 @@ public/
 | `/auth/verify` | `PublicGuard` | `emailRegistration` |
 | `/auth/forgot-password`, `/auth/reset-password` | `PublicGuard` | `passwordReset` |
 | `/invitations/accept` | **none** — works signed-in or out | `teamInvitations` |
-| `/shop`, `/shop/cart`, `/shop/checkout`, `/shop/order` | **none** — a guest must be able to buy | always |
-| `/home`, `/teams`, `/teams/new`, `/teams/:id`, `/account` | `AuthGuard` | always |
+| `/`, `/cart`, `/checkout`, `/order` | **none** — a guest must be able to buy | always |
+| `/app`, `/app/teams`, `/app/teams/new`, `/app/teams/:id`, `/app/account` | `AuthGuard` | always |
+| anything else | — | redirects to `/` |
 
-The shop routes sit outside `AuthGuard` on purpose: the whole point of guest checkout is that
-it works without an account. `/shop/order` must match the service's configured
-`success-url` — see [Open points](#open-points).
+**The shop is at `/`, and that is the point.** It is where people arrive, and it is outside
+`AuthGuard` because the whole of guest checkout is that it works without an account. Everything
+needing one lives under `/app`.
+
+`/order` must match the service's configured `success-url` — `rhc.setup.ts` writes both from the
+same constant, so they cannot disagree.
+
+A path that matches nothing redirects to the shop. It used to render the authenticated home page
+with no guard around it, so a typo showed a signed-out visitor the one page `/` itself refused
+them.
 
 Feature flags live in `src/environments/environment.ts` and must match your service's
 **Sign-up Mgmt → Features** toggles. A flag that's off removes the route *and* the UI that

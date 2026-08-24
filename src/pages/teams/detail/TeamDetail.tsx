@@ -181,7 +181,7 @@ export default function TeamDetail() {
       if (remaining.length > 0 && !remaining.some(t => t.active)) {
         await auth.switchTeam(remaining[0].id);
       }
-      navigate('/teams');
+      navigate('/app/teams');
     } catch (err: unknown) {
       setDeleting(false);
       const e = err as { message?: string };
@@ -197,7 +197,7 @@ export default function TeamDetail() {
   return (
     <>
       <section className="card">
-        <Link to="/teams" className="back-link">&larr; Back to teams</Link>
+        <Link to="/app/teams" className="back-link">&larr; Back to teams</Link>
         <h2>{team?.name || team?.id?.$oid}</h2>
         {team?.description && <p className="muted">{team.description}</p>}
       </section>

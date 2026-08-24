@@ -128,8 +128,8 @@ export default function Shell() {
           <Link to="/" className="logo">RESTHeart Cloud</Link>
 
           <nav className="nav" aria-label="Main">
-            <NavLink to="/home" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Home</NavLink>
-            <NavLink to="/teams" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Teams</NavLink>
+            <NavLink to="/app" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Home</NavLink>
+            <NavLink to="/app/teams" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Teams</NavLink>
           </nav>
 
           <div className="header-actions">
@@ -171,7 +171,7 @@ export default function Shell() {
                     )}
                   </div>
                   <div className="dropdown-divider"></div>
-                  <Link ref={firstMenuItemRef} to="/account" className="dropdown-item" role="menuitem" onClick={closeMenu}>Account</Link>
+                  <Link ref={firstMenuItemRef} to="/app/account" className="dropdown-item" role="menuitem" onClick={closeMenu}>Account</Link>
                   <div className="dropdown-divider"></div>
                   <button type="button" className="dropdown-item dropdown-item-danger" role="menuitem" onClick={logout}>Logout</button>
                 </div>

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import type { RouteObject } from 'react-router-dom';
+import { Navigate, type RouteObject } from 'react-router-dom';
 import { AuthGuard, PublicGuard } from '@restheart-cloud/kit-react';
 import { environment } from './environments/environment';
 
@@ -101,12 +101,16 @@ export const routes: RouteObject[] = [
         },
       ]
     : []),
-  // The shop is deliberately outside AuthGuard: a guest must be able to browse,
-  // pay, and see their receipt without ever creating an account. Whether the
-  // service actually permits an anonymous `POST /orders` is its ACL's call —
-  // Checkout surfaces the 401 if it does not.
+  // The shop is the front door, and it is outside AuthGuard: a guest must be
+  // able to browse, pay, and see their receipt without ever creating an
+  // account. Whether the service actually permits an anonymous `POST /orders`
+  // is its ACL's call — Checkout surfaces the 401 if it does not.
+  //
+  // It sits at `/` rather than under a prefix because that is where people
+  // arrive. A shop reachable only by typing a path nobody links to is a shop
+  // with no visitors, and the signed-out landing was the login page.
   {
-    path: 'shop',
+    path: '/',
     element: (
       <SuspenseWrapper>
         <Shop />
@@ -114,7 +118,7 @@ export const routes: RouteObject[] = [
     ),
   },
   {
-    path: 'shop/cart',
+    path: 'cart',
     element: (
       <SuspenseWrapper>
         <Cart />
@@ -122,7 +126,7 @@ export const routes: RouteObject[] = [
     ),
   },
   {
-    path: 'shop/checkout',
+    path: 'checkout',
     element: (
       <SuspenseWrapper>
         <Checkout />
@@ -132,15 +136,18 @@ export const routes: RouteObject[] = [
   {
     // Stripe returns the buyer here. The path must match
     // `stripeConfig.products.success-url` on the service.
-    path: 'shop/order',
+    path: 'order',
     element: (
       <SuspenseWrapper>
         <OrderReturn />
       </SuspenseWrapper>
     ),
   },
+  // Everything that needs an account lives under `/app`. It used to be at `/`,
+  // which is why a signed-out visitor was bounced to the login page before
+  // seeing anything at all.
   {
-    path: '/',
+    path: '/app',
     element: (
       <SuspenseWrapper>
         <AuthGuard>
@@ -150,12 +157,13 @@ export const routes: RouteObject[] = [
     ),
     children: [
       { index: true, element: <Home /> },
-      { path: 'home', element: <Home /> },
       { path: 'teams', element: <Teams /> },
       { path: 'teams/new', element: <NewTeam /> },
       { path: 'teams/:id', element: <TeamDetail /> },
       { path: 'account', element: <Account /> },
     ],
   },
-  { path: '*', element: <Home /> },
+  // An unknown path used to render the authenticated home with no guard around
+  // it, so a typo showed a signed-out visitor a page `/` itself refused them.
+  { path: '*', element: <Navigate to="/" replace /> },
 ];

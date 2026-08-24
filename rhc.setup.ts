@@ -34,8 +34,8 @@ const origin = APP_ORIGIN.replace(/\/$/, '');
 // interpolates {ORDER_ID} and {ORDER_SECRET}. They go in the **fragment** so the
 // secret never reaches a server log or a Referer header — OrderReturn.tsx reads
 // it with readOrderRef() and strips it from the address bar at once.
-const SUCCESS_URL = `${origin}/shop/order#order={ORDER_ID}&secret={ORDER_SECRET}`;
-const CANCEL_URL = `${origin}/shop/cart`;
+const SUCCESS_URL = `${origin}/order#order={ORDER_ID}&secret={ORDER_SECRET}`;
+const CANCEL_URL = `${origin}/cart`;
 
 /** A stored secret reads back as bullets; one that was never set reads back blank. */
 const configured = (value: unknown) =>
@@ -329,7 +329,7 @@ export default defineSetup('Ecommerce', [
 
   step('guests may read back the order they placed', {
     // The setting the README's table of three does not list. Without it the
-    // buyer pays, lands on /shop/order, and is answered 401 by the page whose
+    // buyer pays, lands on /order, and is answered 401 by the page whose
     // whole job is to reassure them the money went somewhere.
     check: ({ service }) => service.permissionExists('orders-read-anon'),
     apply: ({ service }) =>

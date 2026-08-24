@@ -20,7 +20,7 @@ export default function NewTeam() {
     setError(null);
     try {
       await auth.createTeam(teamName);
-      navigate('/teams');
+      navigate('/app/teams');
     } catch (err: unknown) {
       setSaving(false);
       const e = err as { message?: string };
@@ -30,7 +30,7 @@ export default function NewTeam() {
 
   return (
     <section className="card">
-      <Link to="/teams" className="back-link">&larr; Back to teams</Link>
+      <Link to="/app/teams" className="back-link">&larr; Back to teams</Link>
       <h2>Create a new team</h2>
 
       {error && <Alert type="error" onClose={() => setError(null)}>{error}</Alert>}
