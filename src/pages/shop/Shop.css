@@ -223,3 +223,15 @@
 @media (prefers-reduced-motion: reduce) {
   .shop-toast { animation: none; }
 }
+
+/* ── Account offer in the guest checkout ──────────────────────────────────── */
+
+.checkout-account {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 0.5rem;
+  background: var(--color-surface-muted, #f9fafb);
+}
+
+.checkout-account p { margin: 0; }
+.checkout-account p + p { margin-top: 0.375rem; }

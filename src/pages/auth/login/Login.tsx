@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@restheart-cloud/kit-react';
+import { safeNext } from '../../../safe-next';
 import { environment } from '../../../environments/environment';
 import { OAuthButtons } from '../oauth-buttons/OAuthButtons';
 import { Alert } from '../../../ui/alert/Alert';
@@ -36,7 +37,8 @@ export default function Login() {
     setError(null);
     try {
       await auth.login(email, password);
-      navigate('/');
+      // Back where they were asked to sign in from — the checkout, usually.
+      navigate(safeNext(searchParams));
     } catch (err: unknown) {
       setLoading(false);
       const e = err as { status?: number; message?: string };

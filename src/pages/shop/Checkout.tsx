@@ -101,6 +101,29 @@ export default function Checkout() {
       <form onSubmit={handleSubmit} className="checkout-form">
         {isGuest ? (
           <>
+            {/*
+              An offer, never a gate. Guest checkout is the point of this page,
+              so the account option sits above the form without blocking it, and
+              the cart is in localStorage either way.
+
+              The two are not the same kind of detour. Logging in comes straight
+              back here — that is what `?next` does. Signing up cannot: the
+              account has to be verified by email first, so it means leaving the
+              purchase. Say so, rather than letting someone find out after they
+              have typed their details.
+            */}
+            <div className="checkout-account">
+              <p>
+                <strong>Have an account?</strong>{' '}
+                <Link to="/auth/login?next=/checkout">Log in</Link> and come straight back — your
+                cart is kept.
+              </p>
+              <p className="muted">
+                Or <Link to="/auth/signup">create one</Link>, which needs an email confirmation
+                first. You do not need an account to buy.
+              </p>
+            </div>
+
             <div className="form-field">
               <label htmlFor="email">Email</label>
               <input
@@ -112,10 +135,7 @@ export default function Checkout() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@example.com"
               />
-              <p className="muted">
-                We'll send the receipt here. No account needed —{' '}
-                <Link to="/auth/login">sign in</Link> if you'd rather keep your order history.
-              </p>
+              <p className="muted">We'll send the receipt here.</p>
             </div>
 
             {/*
