@@ -4,10 +4,6 @@ An ecommerce example built on [`@restheart-cloud/kit-react`](https://github.com/
 
 Everything the auth starter does — signup, login, OAuth, invitations, team switcher — still works here; the shop is layered on top.
 
-> **Status: unpublished kit.** This app consumes `@restheart-cloud/kit` and
-> `@restheart-cloud/kit-react` through `npm link`, not from npm. See
-> [Local kit development](#local-kit-development) before running it.
-
 ## What's included
 
 **The shop** — public, no account required:
@@ -31,21 +27,80 @@ Everything the auth starter does — signup, login, OAuth, invitations, team swi
 1. **A RESTHeart Cloud service with the `stripe` plugin enabled** — the shop pages call `/orders` and the catalog collection. A service without the plugin answers `404` on those paths. [Create one at cloud.restheart.com](https://cloud.restheart.com).
 2. Node.js 18+
 
-## Local kit development
+## Setup
 
-The kit packages are not published yet, so this app links them from the sibling
-`restheart-cloud-kit` checkout. Run this once:
+### 1. Fork and clone
 
 ```bash
-# 1. Register both kit packages globally
+git clone https://github.com/your-org/restheart-cloud-starter-react.git
+cd restheart-cloud-starter-react
+npm install
+```
+
+### 2. Point to your RESTHeart Cloud service
+
+After cloning, tell git to ignore local changes to the environment file:
+
+```bash
+git update-index --assume-unchanged src/environments/environment.ts
+```
+
+Then edit `src/environments/environment.ts` and set `apiUrl` to your RESTHeart Cloud service URL. Your changes will not show up in `git status`.
+
+### 3. Configure the service
+
+The shop expects things of its service — the `stripe` plugin installed and configured, the
+collections, and three ACL permissions without which a guest cannot browse, buy, or see their
+receipt. [`rhc.setup.ts`](./rhc.setup.ts) states all of it as code.
+
+```bash
+npm install -g @restheart-cloud/cli    # the rhc command
+npm i -D @restheart-cloud/cli          # the setup file imports it
+
+export STRIPE_SECRET_KEY=sk_test_...   # from dashboard.stripe.com/test/apikeys
+export STRIPE_WEBHOOK_SECRET=whsec_... # from your webhook endpoint there
+
+rhc login                              # a personal access token, from cloud.restheart.com
+rhc setup --srv <srvId> --dry-run      # what the service is missing
+rhc setup --srv <srvId>                # make it so
+```
+
+`<srvId>` is the six-character id of your service — the first label of its URL.
+
+The Stripe keys are your **test account's**, and they are needed only the first time: they are
+read at apply time and only when the service does not already hold them, so a re-run needs no
+secrets in the environment at all.
+
+The last step fills an empty catalog with demo products, so the shop has something to show. It
+checks whether the catalog holds anything at all rather than whether those products are present
+as written — it seeds once and then leaves your shop alone.
+
+### 4. Start
+
+```bash
+npm run dev
+```
+
+## Working on the kit itself
+
+**Skip this unless you are changing `@restheart-cloud/kit` or `@restheart-cloud/kit-react`.**
+Both are on npm, and `npm install` gets them; this section is for running the app against a
+kit checkout you are editing.
+
+```bash
+# 1. Register the kit packages globally
 cd ../restheart-cloud-kit/packages/kit       && npm link
 cd ../kit-react                              && npm link
 
 # 2. Point this app at them
 cd ../../../restheart-cloud-starter-ecommerce
-npm install
 npm link @restheart-cloud/kit @restheart-cloud/kit-react
 ```
+
+**`npm install` undoes this.** It resolves the published versions and replaces the symlinks
+with real directories — the app then runs against the release, silently, with no error to
+notice. Re-run the `npm link` line after any install, and check with
+`ls -l node_modules/@restheart-cloud/`: symlinks, not directories.
 
 **After every change to the kit, rebuild it** — this app consumes `dist/`, not the
 TypeScript sources:
@@ -67,32 +122,6 @@ the kit monorepo (19.x) instead of this app (18.x). Two Reacts in one tree throw
 **All of this comes out once the kit is published:** drop the three settings from
 `vite.config.ts`, run `npm unlink @restheart-cloud/kit @restheart-cloud/kit-react`, and
 `npm install @restheart-cloud/kit-react@<version>`.
-
-## Setup
-
-### 1. Fork and clone
-
-```bash
-git clone https://github.com/your-org/restheart-cloud-starter-react.git
-cd restheart-cloud-starter-react
-npm install
-```
-
-### 2. Point to your RESTHeart Cloud service
-
-After cloning, tell git to ignore local changes to the environment file:
-
-```bash
-git update-index --assume-unchanged src/environments/environment.ts
-```
-
-Then edit `src/environments/environment.ts` and set `apiUrl` to your RESTHeart Cloud service URL. Your changes will not show up in `git status`.
-
-### 3. Start
-
-```bash
-npm run dev
-```
 
 ## Structure
 
@@ -123,7 +152,7 @@ public/
   terms.html              ← PLACEHOLDER — replace with your own
   privacy.html            ← PLACEHOLDER — replace with your own
 scripts/
-  seed-catalog.mjs        ← fills an empty catalog with demo products
+  seed-catalog.mjs        ← superseded by the `sample catalog` step in rhc.setup.ts
 ```
 
 ### Route map
@@ -296,10 +325,12 @@ writes nothing and reports each step satisfied. Secrets are named rather than he
 `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are read from the environment at apply time, and
 only when the service does not already have them — so a re-run needs no secrets at all.
 
-> **Not runnable yet.** `@restheart-cloud/cli` is unpublished; it ships with the next kit release,
-> and this setup has not been run against a live service. Until then the table above is still the
-> procedure. The setup lives here anyway so it changes in the same commit as the code it
-> configures — which is the whole reason for it not being a checklist.
+The table above is the *why*; the setup is the *how*, and the two live in the same repository so
+they change in the same commit as the code they configure — which is the whole reason for it not
+being a checklist.
+
+> `@restheart-cloud/cli` ships with the next kit release. Until it is on npm, install it from a
+> checkout of `restheart-cloud-kit` with `npm link`.
 
 ### Configure the success URL to carry the order reference
 
