@@ -6,6 +6,7 @@ import { setJustSignedUp } from './just-signed-up';
 import { routes } from './routes';
 import { ConfigPage } from './ConfigPage';
 import { ConsentsGate } from './ConsentsGate';
+import { Footer } from './ui/Footer';
 
 function consumeFragmentToken(): void {
   const hash = window.location.hash;
@@ -59,5 +60,14 @@ export function App() {
   // `checkSession` short-circuits without a request and never sees a `451`.
   // The shop stays browsable and buyable for them, which is the point of
   // having it outside AuthGuard.
-  return <ConsentsGate>{element}</ConsentsGate>;
+  // The footer is inside the gate, so a blocked user sees the acceptance form
+  // and nothing else — including no seller details, which would be odd on a
+  // screen that is not the shop. The Terms and Privacy links they need are on
+  // the form itself.
+  return (
+    <ConsentsGate>
+      {element}
+      <Footer />
+    </ConsentsGate>
+  );
 }

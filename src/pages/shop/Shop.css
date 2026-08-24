@@ -175,3 +175,51 @@
   gap: 0.5rem;
   align-items: center;
 }
+
+/* ── Added-to-cart feedback ───────────────────────────────────────────────── */
+
+.btn-primary.is-added {
+  background: var(--color-success, #15803d);
+  border-color: var(--color-success, #15803d);
+}
+
+.shop-toast-area {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.shop-toast {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  background: #111827;
+  color: #f9fafb;
+  box-shadow: 0 10px 25px rgb(0 0 0 / 0.25);
+  pointer-events: auto;
+  animation: shop-toast-in 160ms ease-out;
+}
+
+.shop-toast-link {
+  color: #f9fafb;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+@keyframes shop-toast-in {
+  from { opacity: 0; transform: translateY(0.5rem); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Someone who asked for less motion still gets the toast, just not the slide. */
+@media (prefers-reduced-motion: reduce) {
+  .shop-toast { animation: none; }
+}

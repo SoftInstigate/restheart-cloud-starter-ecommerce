@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth, usePayments, formatPrice, type CatalogItem } from '@restheart-cloud/kit-react';
 import { environment } from '../../environments/environment';
@@ -9,6 +9,23 @@ export default function Shop() {
   const payments = usePayments();
   const cart = useCart();
   const auth = useAuth();
+
+  // Which item was just added, so the button can say so. Cleared on a timer —
+  // and the timer is held in a ref so adding a second item restarts it rather
+  // than letting the first one's timeout clear the second one's message.
+  const [justAdded, setJustAdded] = useState<string | null>(null);
+  const addedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (addedTimer.current) clearTimeout(addedTimer.current);
+  }, []);
+
+  const addToCart = (item: CatalogItem) => {
+    cart.add(item);
+    setJustAdded(item._id);
+    if (addedTimer.current) clearTimeout(addedTimer.current);
+    addedTimer.current = setTimeout(() => setJustAdded(null), 2500);
+  };
 
   const [items, setItems] = useState<CatalogItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -103,8 +120,11 @@ export default function Shop() {
                   {formatPrice(item.unit_amount, item.currency ?? 'eur')}
                 </span>
                 {item.purchasable ? (
-                  <button type="button" className="btn-primary" onClick={() => cart.add(item)}>
-                    Add to cart
+                  <button
+                    type="button"
+                    className={`btn-primary${justAdded === item._id ? ' is-added' : ''}`}
+                    onClick={() => addToCart(item)}>
+                    {justAdded === item._id ? 'Added \u2713' : 'Add to cart'}
                   </button>
                 ) : (
                   <span className="badge">Sold out</span>
@@ -113,6 +133,18 @@ export default function Shop() {
             </div>
           </article>
         ))}
+      </div>
+
+      {/* Announced to screen readers as well as shown: the cart count in the
+          header changes too, but a number quietly going from 1 to 2 is easy to
+          miss and impossible to hear. */}
+      <div className="shop-toast-area" role="status" aria-live="polite">
+        {justAdded && (
+          <div className="shop-toast">
+            <span>{items.find(i => i._id === justAdded)?.name} added to your cart</span>
+            <Link to="/cart" className="shop-toast-link">View cart</Link>
+          </div>
+        )}
       </div>
     </div>
   );

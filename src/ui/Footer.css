@@ -1,0 +1,43 @@
+.site-footer {
+  margin-top: 4rem;
+  padding: 2rem 1.5rem 1.5rem;
+  border-top: 1px solid var(--color-border, #e5e7eb);
+  font-size: 0.875rem;
+  color: var(--color-muted, #6b7280);
+}
+
+.site-footer-inner {
+  max-width: 64rem;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem 3rem;
+  justify-content: space-between;
+}
+
+.site-footer-company p { margin: 0 0 0.25rem; }
+
+.site-footer-name {
+  font-weight: 600;
+  color: var(--color-text, #111827);
+}
+
+.site-footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.site-footer-links a,
+.site-footer-company a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.site-footer-note {
+  max-width: 64rem;
+  margin: 1.5rem auto 0;
+  font-size: 0.8125rem;
+  font-style: italic;
+}
