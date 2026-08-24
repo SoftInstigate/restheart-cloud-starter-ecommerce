@@ -151,8 +151,6 @@ src/
 public/
   terms.html              ← PLACEHOLDER — replace with your own
   privacy.html            ← PLACEHOLDER — replace with your own
-scripts/
-  seed-catalog.mjs        ← superseded by the `sample catalog` step in rhc.setup.ts
 ```
 
 ### Route map
