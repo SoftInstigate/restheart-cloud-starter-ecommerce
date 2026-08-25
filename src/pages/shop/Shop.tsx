@@ -35,31 +35,45 @@ export default function Shop() {
 
   const [items, setItems] = useState<CatalogItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
   const [done, setDone] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const sentinel = useRef<HTMLDivElement | null>(null);
 
-  const [category, setCategory] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [search, setSearch] = useState('');
+
+  /**
+   * What is being asked for, in one piece.
+   *
+   * The page used to be its own state, reset by an effect watching the filter.
+   * That is a race, and it broke exactly where you would not look for it:
+   * changing category from page three ran both effects in the same commit, so
+   * the fetch fired with the *new* category and the *old* page, asked for page
+   * three of a one-page list, got nothing back, and concluded the catalog was
+   * exhausted. `done` stayed true, the sentinel never rendered again, and
+   * infinite scroll was over for the rest of the session.
+   *
+   * Held together, a page number cannot be stale with respect to the filter it
+   * belongs to: they change in the same update or not at all.
+   */
+  const [q, setQ] = useState<{ category: string | null; search: string; page: number }>({
+    category: null,
+    search: '',
+    page: 1,
+  });
 
   // Typing is not a query. Waiting a moment turns a word into one request
   // instead of one per keystroke, and the catalog is on the other side of a
   // network.
   useEffect(() => {
-    const t = setTimeout(() => setSearch(query.trim()), 300);
+    const t = setTimeout(() => {
+      const search = query.trim();
+      setQ(prev => (prev.search === search ? prev : { ...prev, search, page: 1 }));
+    }, 300);
     return () => clearTimeout(t);
   }, [query]);
 
-  // A new question starts at the first page. Without this, switching category
-  // while three pages deep asks the server for page four of a list that has
-  // one page.
-  useEffect(() => {
-    setPage(1);
-    setDone(false);
-    setItems(null);
-  }, [category, search]);
+  const pickCategory = (next: string | null) =>
+    setQ(prev => ({ ...prev, category: prev.category === next ? null : next, page: 1 }));
 
   /**
    * The catalog, filtered and a page at a time.
@@ -76,16 +90,25 @@ export default function Shop() {
    */
   useEffect(() => {
     let cancelled = false;
-    if (page > 1) setLoadingMore(true);
+
+    if (q.page > 1) {
+      setLoadingMore(true);
+    } else {
+      // A new question: forget the old answer before asking, so the grid does
+      // not show the previous filter's products while this one loads.
+      setItems(null);
+      setDone(false);
+      setError(null);
+    }
 
     const conditions: Record<string, unknown>[] = [];
-    if (category) conditions.push({ category });
+    if (q.category) conditions.push({ category: q.category });
     // Anchored on neither end: "mug" should find "Enamel mug". `$options: 'i'`
     // rather than lower-casing the field, which would need an index we do not
     // control from here.
-    if (search) conditions.push({ name: { $regex: escapeRegex(search), $options: 'i' } });
+    if (q.search) conditions.push({ name: { $regex: escapeRegex(q.search), $options: 'i' } });
 
-    const params = new URLSearchParams({ page: String(page), pagesize: String(PAGE_SIZE) });
+    const params = new URLSearchParams({ page: String(q.page), pagesize: String(PAGE_SIZE) });
     if (conditions.length === 1) params.set('filter', JSON.stringify(conditions[0]));
     if (conditions.length > 1) params.set('filter', JSON.stringify({ $and: conditions }));
 
@@ -94,7 +117,9 @@ export default function Shop() {
       .then(res => res.json())
       .then((catalog: CatalogItem[]) => {
         if (cancelled) return;
-        setItems(prev => (page === 1 ? catalog : [...(prev ?? []), ...catalog]));
+        setItems(prev => (q.page === 1 ? catalog : [...(prev ?? []), ...catalog]));
+        // A short page is the end. Asking for a count would be a second
+        // round-trip on every scroll to learn what the next page says for free.
         if (catalog.length < PAGE_SIZE) setDone(true);
         setLoadingMore(false);
       })
@@ -116,7 +141,7 @@ export default function Shop() {
     return () => {
       cancelled = true;
     };
-  }, [auth, page, category, search]);
+  }, [auth, q]);
 
   // The sentinel sits under the grid; when it comes into view there is another
   // page to ask for. `rootMargin` starts the request a screen early, so the
@@ -127,7 +152,7 @@ export default function Shop() {
 
     const observer = new IntersectionObserver(
       entries => {
-        if (entries[0]?.isIntersecting && !loadingMore) setPage(p => p + 1);
+        if (entries[0]?.isIntersecting && !loadingMore) setQ(prev => ({ ...prev, page: prev.page + 1 }));
       },
       { rootMargin: '600px' }
     );
@@ -182,9 +207,9 @@ export default function Shop() {
         <div className="shop-categories" role="group" aria-label="Filter by category">
           <button
             type="button"
-            className={`chip${category === null ? ' chip-active' : ''}`}
-            aria-pressed={category === null}
-            onClick={() => setCategory(null)}
+            className={`chip${q.category === null ? ' chip-active' : ''}`}
+            aria-pressed={q.category === null}
+            onClick={() => pickCategory(null)}
           >
             All
           </button>
@@ -192,9 +217,9 @@ export default function Shop() {
             <button
               key={c}
               type="button"
-              className={`chip${category === c ? ' chip-active' : ''}`}
-              aria-pressed={category === c}
-              onClick={() => setCategory(category === c ? null : c)}
+              className={`chip${q.category === c ? ' chip-active' : ''}`}
+              aria-pressed={q.category === c}
+              onClick={() => pickCategory(c)}
             >
               {c}
             </button>
@@ -202,11 +227,11 @@ export default function Shop() {
         </div>
       </div>
 
-      {items.length === 0 && (category || search) && (
+      {items.length === 0 && (q.category || q.search) && (
         <p className="muted">Nothing matches that. Try another category, or clear the search.</p>
       )}
 
-      {items.length === 0 && !category && !search && (
+      {items.length === 0 && !q.category && !q.search && (
         <p className="muted">
           The catalog has no purchasable products yet. Run <code>rhc setup --srv &lt;srvId&gt;</code>.
         </p>

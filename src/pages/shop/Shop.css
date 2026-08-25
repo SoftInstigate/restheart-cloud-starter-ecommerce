@@ -272,7 +272,7 @@
 }
 
 .order-row {
-  border: 1px solid var(--border, #e5e5e5);
+  border: 1px solid var(--color-border);
   border-radius: 0.5rem;
   padding: 1rem 1.25rem;
 }
@@ -293,10 +293,14 @@
 
 /* Paid is the quiet one on purpose: it is the expected outcome, and a shop
    whose every order shouts is a shop where nothing stands out. */
-.order-status-paid { background: var(--ok-bg, #e8f5e9); color: var(--ok-fg, #1b5e20); }
-.order-status-pending_payment { background: var(--warn-bg, #fff8e1); color: var(--warn-fg, #7c5800); }
+/* Text colour on the page's own surface, not a coloured pill: the app has
+   tokens for success and error but none for a warning fill, and inventing two
+   hard-coded ones would give a bright rectangle in dark mode. */
+.order-status { background: transparent; padding: 0; font-weight: 600; }
+.order-status-paid { color: var(--color-success); }
+.order-status-pending_payment { color: var(--color-text-muted); }
 .order-status-failed,
-.order-status-expired { background: var(--err-bg, #fdecea); color: var(--err-fg, #8b1a10); }
+.order-status-expired { color: var(--color-error); }
 
 /* Search and category chips. */
 .shop-filters {
@@ -310,7 +314,7 @@
   width: 100%;
   max-width: 24rem;
   padding: 0.6rem 0.9rem;
-  border: 1px solid var(--border, #e5e5e5);
+  border: 1px solid var(--color-border);
   border-radius: 0.5rem;
   font: inherit;
   background: transparent;
@@ -325,7 +329,7 @@
 
 .chip {
   padding: 0.35rem 0.85rem;
-  border: 1px solid var(--border, #e5e5e5);
+  border: 1px solid var(--color-border);
   border-radius: 999px;
   background: transparent;
   color: inherit;

@@ -257,6 +257,12 @@ code {
   font-family: var(--font-mono);
   font-size: 0.875em;
   background: var(--color-surface-sunken);
+  /* Stated, not inherited. The background is a token that flips with the
+     theme, so the text on it has to flip too — inheriting means a `code` inside
+     anything with a colour of its own (a warning box, a muted paragraph) keeps
+     that colour over a surface it was never chosen against. In dark mode that
+     was dark text on near-black. */
+  color: var(--color-text);
   border-radius: var(--radius-sm);
   padding: 0.125rem var(--space-1);
 }
