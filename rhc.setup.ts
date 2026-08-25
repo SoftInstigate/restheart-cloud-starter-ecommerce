@@ -237,41 +237,6 @@ const USER_SCHEMA = {
 };
 
 /**
- * Paths the gate must leave alone, beyond the two it always excludes.
- *
- * **Every path reachable without an account belongs here** — not only the ones
- * you wrote permissions for, but the ones a plugin opens on its own, and the
- * ones called by something that is not a person at all. The rule is keyed on a
- * user's state, and a caller who has no user cannot satisfy it:
- * the comparison is false, the rule matches, and they are answered `451` and
- * shown a form that asks them to accept — which they cannot, because accepting
- * is a `PATCH` on a user document they do not have.
- *
- * Everything else is already safe without being listed. Authorization runs
- * *before* guards, so a path the ACL does not open to anonymous callers is
- * refused with `401` and never reaches this rule at all. The list is therefore
- * exactly as long as your public surface, and no longer.
- *
- * A shop is public, so the two collections a guest browses and buys from are
- * here — the same two the ACL steps above open to `$unauthenticated`. Miss one
- * and the symptom is a visitor meeting a consents form on the catalogue, which
- * is a form they cannot possibly complete.
- */
-const PUBLIC_PREFIXES: string[] = [
-  `/${CATALOG}`,
-  `/${ORDERS}`,
-  // Stripe calls this one, and Stripe has no account with you. The module
-  // registers its own ACL rule for exactly this path, POST and OPTIONS — which
-  // is what makes it public, and therefore what puts it here.
-  //
-  // Miss it and the failure is as far from its cause as they get: the customer
-  // pays, Stripe delivers the event, the gate answers 451 because a webhook has
-  // no consents, and the order sits at `pending_payment` for ever. Nothing in
-  // the app is broken and nothing says anything.
-  '/stripe/webhook',
-];
-
-/**
  * Blocked when *either* acceptance is missing — `not (A and B)`, never
  * `not A and not B`, which would block only the users who accepted neither.
  *
@@ -283,16 +248,30 @@ const PUBLIC_PREFIXES: string[] = [
  * gate work with no probing on the client's side: reading the user document is
  * the first thing any app does.
  *
- * Public paths come from {@link PUBLIC_PREFIXES}. There is no way to write "only
- * when authenticated" here: a condition sees `@user`, `@team` and `@request`,
- * and no roles — so anonymity is excluded by naming the paths, the same way
- * `/auth` and `/token` are.
+ * Anonymous callers are excluded with `@roles`, not by naming every public path.
+ * The list version had to be kept complete by hand and was invisible until it
+ * was wrong — twice, on one service.
  */
 const CONDITION = [
+  // Nobody signed in, nothing to guard. This one line replaces a list of every
+  // public path, which had to be remembered and was invisible until it was
+  // wrong — it missed a shop's catalogue, so anonymous visitors were shown a
+  // consents form they could not complete, and then /stripe/webhook, so
+  // customers paid and their orders never moved.
+  //
+  // `@roles` is a RESTHeart 9.8 built-in and carries `$unauthenticated` when
+  // there is no account, the same name the ACL uses.
+  "not in(value='$unauthenticated', array=@roles)",
+
+  // Still needed, and not about anonymity: signing in and fetching a token are
+  // authenticated requests made by someone who has not accepted yet. Guard
+  // those and a blocked user cannot get back in — you included.
   "not path-prefix('/auth')",
   "not path-prefix('/token')",
-  ...PUBLIC_PREFIXES.map(p => `not path-prefix('${p}')`),
+
+  // The acceptance itself, made while still blocked.
   "not (method(PATCH) and path-template('/users/{userId}') and bson-request-whitelist(consents))",
+
   `not (equals(@user.latestConsents.tos, '${TOS_VERSION}') and equals(@user.latestConsents.pp, '${PP_VERSION}'))`,
 ].join(' and ');
 
