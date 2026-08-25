@@ -99,3 +99,10 @@
     width: 100%;
   }
 }
+
+/* The intro sits directly above the list of accounts and had nothing between
+   them: a paragraph's bottom margin is sized for the next paragraph, not for a
+   row of boxes. */
+.billing-intro {
+  margin-bottom: 2rem;
+}

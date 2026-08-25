@@ -29,7 +29,11 @@ export default function Signup() {
 
     setLoading(true);
     setError(null);
-    const teamName = firstName ? `${firstName}'s Team` : `${email.split('@')[0]}'s Team`;
+    // The server calls this a team; here it is the account purchases are charged
+    // to, and "Andrea's Team" is the wrong words in a shop — a customer who
+    // never invites anyone should not be told they have a team.
+    const owner = firstName || email.split('@')[0];
+    const teamName = `${owner}'s account`;
 
     try {
       await auth.register({ teamName, firstName, lastName, email, password });

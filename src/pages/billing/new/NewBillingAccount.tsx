@@ -31,13 +31,13 @@ export default function NewBillingAccount() {
   return (
     <section className="card">
       <Link to="/billing" className="back-link">&larr; Back to billing accounts</Link>
-      <h2>Create a new team</h2>
+      <h2>Create a billing account</h2>
 
       {error && <Alert type="error" onClose={() => setError(null)}>{error}</Alert>}
 
       <form onSubmit={createTeam} noValidate className="account-form">
         <div className="form-field">
-          <label htmlFor="team-name">Team name</label>
+          <label htmlFor="team-name">Account name</label>
           <input
             id="team-name"
             type="text"
@@ -47,7 +47,7 @@ export default function NewBillingAccount() {
           />
         </div>
         <button type="submit" className="btn-primary" disabled={saving}>
-          {saving ? 'Creating…' : 'Create team'}
+          {saving ? 'Creating…' : 'Create account'}
         </button>
       </form>
     </section>

@@ -38,7 +38,7 @@ export default function Billing() {
           charged to, and sometimes more than one: their own, and the company's.
           Renaming it only here, where a customer reads it, keeps the kit's
           vocabulary intact and the customer's plain. */}
-      <p className="muted">
+      <p className="muted billing-intro">
         Purchases are charged to a billing account. Invite people to one and you
         share it — orders they place are charged there, and everyone on the
         account can see them. Most people need only the one they already have.

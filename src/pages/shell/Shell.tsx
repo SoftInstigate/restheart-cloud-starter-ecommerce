@@ -62,6 +62,22 @@ export default function Shell() {
     setNavigating(false);
   }, [location]);
 
+  /**
+   * A new page starts at the top.
+   *
+   * A single-page app swaps the content and leaves the scroll position where it
+   * was, which a browser doing a real navigation would never do. Clicking Terms
+   * from the footer — the bottom of a long shop — opened the document already
+   * scrolled past its own heading.
+   *
+   * Keyed on `pathname` alone: the hash and the query string change without the
+   * page changing, and the order reference comes back from Stripe in a fragment
+   * we do not want to scroll for.
+   */
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
   const initials = (): string => {
     const user = auth.user;
     if (!user) return '?';
