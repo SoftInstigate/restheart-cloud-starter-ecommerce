@@ -239,8 +239,10 @@ const USER_SCHEMA = {
 /**
  * Paths the gate must leave alone, beyond the two it always excludes.
  *
- * **Every path your ACL grants to `$unauthenticated` belongs here.** The rule
- * is keyed on a user's state, and a visitor who has no user cannot satisfy it:
+ * **Every path reachable without an account belongs here** — not only the ones
+ * you wrote permissions for, but the ones a plugin opens on its own, and the
+ * ones called by something that is not a person at all. The rule is keyed on a
+ * user's state, and a caller who has no user cannot satisfy it:
  * the comparison is false, the rule matches, and they are answered `451` and
  * shown a form that asks them to accept — which they cannot, because accepting
  * is a `PATCH` on a user document they do not have.
@@ -255,7 +257,19 @@ const USER_SCHEMA = {
  * and the symptom is a visitor meeting a consents form on the catalogue, which
  * is a form they cannot possibly complete.
  */
-const PUBLIC_PREFIXES: string[] = [`/${CATALOG}`, `/${ORDERS}`];
+const PUBLIC_PREFIXES: string[] = [
+  `/${CATALOG}`,
+  `/${ORDERS}`,
+  // Stripe calls this one, and Stripe has no account with you. The module
+  // registers its own ACL rule for exactly this path, POST and OPTIONS — which
+  // is what makes it public, and therefore what puts it here.
+  //
+  // Miss it and the failure is as far from its cause as they get: the customer
+  // pays, Stripe delivers the event, the gate answers 451 because a webhook has
+  // no consents, and the order sits at `pending_payment` for ever. Nothing in
+  // the app is broken and nothing says anything.
+  '/stripe/webhook',
+];
 
 /**
  * Blocked when *either* acceptance is missing — `not (A and B)`, never
