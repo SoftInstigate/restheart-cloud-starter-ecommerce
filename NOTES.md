@@ -35,16 +35,28 @@ cd ../restheart-cloud-kit && npm run build
 Vite picks the rebuild up without a restart, because the linked packages are excluded
 from dependency pre-bundling in `vite.config.ts`.
 
-### Why `vite.config.ts` has extra settings
+### If you link, `vite.config.ts` needs three settings back
+
+They were there and are now gone, because the kit is published and this app installs it
+normally. Linking needs them again:
+
+```ts
+resolve:     { dedupe: ['react', 'react-dom', 'react-router-dom'] },
+optimizeDeps:{ exclude: ['@restheart-cloud/kit', '@restheart-cloud/kit-react'] },
+server:      { fs: { allow: ['..'] } },
+```
 
 A linked package resolves *its own* imports from its real path, so `react` would come from
-the kit monorepo (19.x) instead of this app (18.x). Two Reacts in one tree throw
-"Invalid hook call" on the first hook the kit runs. `resolve.dedupe` forces a single copy.
-`optimizeDeps.exclude` and `server.fs.allow` are the other two things linking needs.
+the kit monorepo instead of this app. Two Reacts in one tree throw "Invalid hook call" on the
+first hook the kit runs — `dedupe` forces a single copy. `optimizeDeps.exclude` keeps Vite
+from snapshotting a symlinked dep, and `server.fs.allow` lets it serve sources from outside
+the project root.
 
-**All of this comes out once the kit is published:** drop the three settings from
-`vite.config.ts`, run `npm unlink @restheart-cloud/kit @restheart-cloud/kit-react`, and
-`npm install @restheart-cloud/kit-react@<version>`.
+**Whichever way you switch, stop the dev server and delete `node_modules/.vite` first.** Vite
+resolves a module once and keeps serving it from where it found it: link or unlink under a
+running server and you get the provider from one copy and the hook from the other, which
+surfaces as `useAuth must be used within a <RhAuthProvider>` on a component that is plainly
+inside one.
 
 ## Structure
 
