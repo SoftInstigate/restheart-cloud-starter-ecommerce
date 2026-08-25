@@ -109,7 +109,17 @@ export default function Shop() {
     // control from here.
     if (q.search) conditions.push({ name: { $regex: escapeRegex(q.search), $options: 'i' } });
 
-    const params = new URLSearchParams({ page: String(q.page), pagesize: String(PAGE_SIZE) });
+    // Sorted, and by name.
+    //
+    // Unsorted meant whatever order the server chose — which came back roughly
+    // Z to A and looked deliberate, because any consistent order does. It also
+    // makes the paging honest: without a sort, "page 2" is only well defined by
+    // luck, and an item can appear on two pages or on none as documents move.
+    const params = new URLSearchParams({
+      page: String(q.page),
+      pagesize: String(PAGE_SIZE),
+      sort: 'name',
+    });
     if (conditions.length === 1) params.set('filter', JSON.stringify(conditions[0]));
     if (conditions.length > 1) params.set('filter', JSON.stringify({ $and: conditions }));
 
