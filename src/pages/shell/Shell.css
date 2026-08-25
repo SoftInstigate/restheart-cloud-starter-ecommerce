@@ -15,8 +15,9 @@
   top: 0;
 }
 
+/* Height comes from #root now — see styles.css. This just grows to fill it. */
 .layout {
-  min-height: calc(var(--vh, 1vh) * 100);
+  flex: 1;
   display: flex;
   flex-direction: column;
 }

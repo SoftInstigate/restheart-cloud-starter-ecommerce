@@ -160,29 +160,18 @@ export default function Shop() {
     return () => observer.disconnect();
   }, [done, items, loadingMore]);
 
-  if (error) {
-    return (
-      <div className="shop-page">
-        <div className="form-error" role="alert">{error}</div>
-      </div>
-    );
-  }
-
-  if (items === null) {
-    return (
-      <div className="shop-page">
-        <div className="shop-grid">
-          {[0, 1, 2, 3].map(i => (
-            <div key={i} className="card skeleton" style={{ height: '19rem' }} />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // `purchasable: false` items stay visible but cannot be bought — the server
-  // would refuse them at checkout anyway, so hiding the button is the honest
-  // version of the same rule.
+  /*
+   * One return, and the search box inside it.
+   *
+   * There used to be an early return for the loading state, which meant every
+   * new query unmounted the whole page and mounted a skeleton — taking the
+   * search input with it, and the caret out of it. You typed a letter, waited
+   * out the debounce, and were thrown out of the field you were typing in.
+   *
+   * React keeps focus across a re-render; it cannot keep it across an unmount.
+   * So the header and the filters render unconditionally and only the area
+   * below them changes.
+   */
   return (
     <div className="shop-page">
       {/* Cart and account moved to the site header, which every page has now.
@@ -227,16 +216,27 @@ export default function Shop() {
         </div>
       </div>
 
-      {items.length === 0 && (q.category || q.search) && (
+      {error && <div className="form-error" role="alert">{error}</div>}
+
+      {!error && items === null && (
+        <div className="shop-grid">
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} className="card skeleton" style={{ height: '19rem' }} />
+          ))}
+        </div>
+      )}
+
+      {items && items.length === 0 && (q.category || q.search) && (
         <p className="muted">Nothing matches that. Try another category, or clear the search.</p>
       )}
 
-      {items.length === 0 && !q.category && !q.search && (
+      {items && items.length === 0 && !q.category && !q.search && (
         <p className="muted">
           The catalog has no purchasable products yet. Run <code>rhc setup --srv &lt;srvId&gt;</code>.
         </p>
       )}
 
+      {items && items.length > 0 && (
       <div className="shop-grid">
         {items.map(item => (
           <article key={item._id} className="card shop-item">
@@ -263,20 +263,21 @@ export default function Shop() {
           </article>
         ))}
       </div>
+      )}
 
-      {/* Announced to screen readers as well as shown: the cart count in the
-          header changes too, but a number quietly going from 1 to 2 is easy to
-          miss and impossible to hear. */}
       {/* The observer watches this, not the last card: a card can be removed
           from the DOM by a filter change while the observer still holds it. */}
       {!done && <div ref={sentinel} className="shop-sentinel" aria-hidden="true" />}
 
       {loadingMore && <p className="muted shop-more">Loading more…</p>}
 
+      {/* Announced to screen readers as well as shown: the cart count in the
+          header changes too, but a number quietly going from 1 to 2 is easy to
+          miss and impossible to hear. */}
       <div className="shop-toast-area" role="status" aria-live="polite">
         {justAdded && (
           <div className="shop-toast">
-            <span>{items.find(i => i._id === justAdded)?.name} added to your cart</span>
+            <span>{items?.find(i => i._id === justAdded)?.name} added to your cart</span>
             <Link to="/cart" className="shop-toast-link">View cart</Link>
           </div>
         )}

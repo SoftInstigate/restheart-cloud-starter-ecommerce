@@ -267,6 +267,26 @@ code {
   padding: 0.125rem var(--space-1);
 }
 
+/*
+ * The page is a column as tall as the viewport, and the footer is its last row.
+ *
+ * `.layout` used to carry the full height itself, with the footer rendered
+ * after it — so on any short page (an empty cart, a one-line error) the footer
+ * began exactly one screen down and you had to scroll to reach it. Putting the
+ * height here and letting `.layout` grow means a short page ends with the
+ * footer in view and a long one still pushes it below, which is what a footer
+ * is supposed to do.
+ */
+#root {
+  min-height: calc(var(--vh, 1vh) * 100);
+  display: flex;
+  flex-direction: column;
+}
+
+#root > *:first-child {
+  flex: 1 0 auto;
+}
+
 /* One consistent focus ring for every interactive element in the app. */
 :focus-visible {
   outline: var(--focus-ring-width) solid var(--color-primary);
