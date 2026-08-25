@@ -360,6 +360,7 @@ export default defineSetup('Ecommerce', [
         p['catalog-collection'] === CATALOG &&
         p['orders-collection'] === ORDERS &&
         notificationsOn(p) &&
+        p['session-expires-minutes'] === 30 &&
         SHIPPING_COUNTRIES.every(c =>
           ((p['shipping-address-countries'] as string[] | undefined) ?? []).includes(c)
         ) &&
@@ -394,6 +395,12 @@ export default defineSetup('Ecommerce', [
           'default-currency': 'eur',
           'success-url': SUCCESS_URL,
           'cancel-url': CANCEL_URL,
+          // Stripe's minimum. An order sits in `pending_payment` from the moment
+          // Checkout opens until it is paid or the session expires — including
+          // every order nobody ever pays — and only `checkout.session.expired`
+          // clears it. Sixty minutes of an abandoned cart looking like a live
+          // order is a long time to explain to somebody reading the list.
+          'session-expires-minutes': 30,
           notifications: NOTIFICATIONS,
           'shipping-address-countries': SHIPPING_COUNTRIES,
         },

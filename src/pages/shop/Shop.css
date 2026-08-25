@@ -418,3 +418,15 @@
   font-size: 0.9375rem;
   color: var(--color-text-muted);
 }
+
+.order-row-when {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.order-row-note {
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+}

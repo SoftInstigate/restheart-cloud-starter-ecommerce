@@ -149,12 +149,60 @@ export default function Orders() {
     );
   };
 
-  const line = (order: ShopOrder) => (
+  /** BSON dates arrive as `{ $date: millis }`. */
+  const when = (d?: { $date: number } | null) =>
+    d ? new Date(d.$date).toLocaleString(undefined, {
+      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    }) : null;
+
+  /**
+   * What the status means, in words a buyer uses.
+   *
+   * `pending_payment` is the one worth spelling out. It is not an error and not
+   * a stuck order: it is what every order looks like between opening Stripe and
+   * paying, including the ones nobody ever pays. Stripe expires the session on
+   * its own — `checkout.session.expired` moves it to `expired` — but that can be
+   * an hour later, and "pending_payment" with no explanation reads as a fault
+   * for the whole hour.
+   */
+  const explain = (order: ShopOrder): { label: string; note?: string } => {
+    switch (order.status) {
+      case 'paid':
+        return { label: 'Paid' };
+      case 'pending_payment': {
+        const deadline = when(order.expires_at);
+        return {
+          label: 'Awaiting payment',
+          note: deadline
+            ? `Not paid yet. If you left Stripe without paying, this cancels itself by ${deadline}.`
+            : 'Not paid yet. If you left Stripe without paying, this cancels itself shortly.',
+        };
+      }
+      case 'expired':
+        return { label: 'Expired', note: 'Not paid in time. Nothing was charged.' };
+      case 'failed':
+        return { label: 'Payment failed', note: 'Nothing was charged.' };
+      default:
+        return { label: order.status };
+    }
+  };
+
+  const line = (order: ShopOrder) => {
+    const status = explain(order);
+    const placed = when(order.created_at);
+    const paid = when(order.paid_at);
+
+    return (
     <li key={order._id.$oid} className="order-row">
       <div className="order-row-main">
-        <span className="order-row-id">{order._id.$oid}</span>
-        <span className={`badge order-status order-status-${order.status}`}>{order.status}</span>
+        <div className="order-row-when">
+          <strong>{placed ?? 'Order'}</strong>
+          <span className="order-row-id">{order._id.$oid}</span>
+        </div>
+        <span className={`badge order-status order-status-${order.status}`}>{status.label}</span>
       </div>
+
+      {status.note && <p className="muted order-row-note">{status.note}</p>}
       <ul className="cart-lines cart-lines-compact">
         {order.line_items.map(l => (
           <li key={l.product_id} className="cart-line">
@@ -167,9 +215,13 @@ export default function Orders() {
         <span>Total</span>
         <strong>{formatPrice(order.amount_total, order.currency)}</strong>
       </div>
+
+      {paid && <p className="muted order-row-note">Paid {paid}</p>}
+
       {address(order)}
     </li>
-  );
+    );
+  };
 
   return (
     <div className="shop-page shop-narrow">
