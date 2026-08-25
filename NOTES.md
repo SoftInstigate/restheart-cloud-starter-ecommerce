@@ -96,7 +96,7 @@ src/
 | `/auth/verify` | `PublicGuard` | `emailRegistration` |
 | `/auth/forgot-password`, `/auth/reset-password` | `PublicGuard` | `passwordReset` |
 | `/invitations/accept` | **none** — works signed-in or out | `teamInvitations` |
-| `/`, `/cart`, `/checkout`, `/order` | **none** — a guest must be able to buy | always |
+| `/`, `/product/:id`, `/cart`, `/orders` | **none** — a guest must be able to buy | always |
 | `/app`, `/app/teams`, `/app/teams/new`, `/app/teams/:id`, `/app/account` | `AuthGuard` | always |
 | anything else | — | redirects to `/` |
 
@@ -319,7 +319,9 @@ cart should refuse the mix earlier.
 ### Not covered
 
 - **Inventory** — the plugin has an inventory collection; this example ignores stock entirely.
-- **Shipping and tax** — left to Stripe's Checkout configuration.
+- **Shipping** — Stripe collects the address on its own page, for the countries named in
+  `products.shipping-address-countries`; the webhook writes it onto the order. **Tax** — left to
+  Stripe's Checkout configuration.
 - **Order history** — a signed-in buyer's past orders are readable via the orders collection, but there is no page for them.
 - **Refunds** — `amount_refunded` is on the `Order` type and unused here.
 

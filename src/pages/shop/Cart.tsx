@@ -1,10 +1,65 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { formatPrice } from '@restheart-cloud/kit-react';
+import { useAuth, usePayments, formatPrice } from '@restheart-cloud/kit-react';
+import { environment } from '../../environments/environment';
 import { useCart } from '../../shop/cart';
+import { rememberPendingOrder } from '../../shop/pending-order';
 import './Shop.css';
 
+/**
+ * The cart, and the last page before Stripe.
+ *
+ * There used to be a `/checkout` between them, and by the end it had no job
+ * left. For someone signed in it repeated this page's summary and added a
+ * button. For a guest it asked for an email — which Stripe asks for anyway on
+ * its own page, and which the webhook writes back onto the order from the
+ * customer details, so the field was collecting something the server was going
+ * to learn regardless. The shipping address went the same way when Stripe
+ * started collecting that too.
+ *
+ * What was worth keeping is the offer of an account, and that belongs here,
+ * beside the button where the choice is actually made.
+ */
 export default function Cart() {
   const cart = useCart();
+  const auth = useAuth();
+  const payments = usePayments();
+
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const checkout = async () => {
+    setError(null);
+    setStarting(true);
+
+    const items = cart.lines.map(l => ({ productId: l.productId, quantity: l.quantity }));
+
+    try {
+      // No email, even for a guest: Stripe collects one on its own page and the
+      // webhook fills `buyer_email` from what it returns.
+      const order = await payments.createOrder(items, undefined, environment.catalogOrdersCollection);
+
+      // Write the secret down BEFORE leaving for Stripe. The success URL is
+      // configured server-side and cannot carry it, so this is the only way the
+      // orders page will be able to read the order back — especially for a
+      // guest, who has no session to identify them.
+      rememberPendingOrder(order._id.$oid, order.secret);
+
+      cart.clear();
+      window.location.href = order.checkout_url;
+    } catch (err) {
+      const e = err as { status?: number; message?: string };
+      setStarting(false);
+      // A 401 is the one failure this page can explain better than the server:
+      // it means the service does not permit anonymous orders, which is its
+      // ACL's decision and says nothing a buyer could act on.
+      setError(
+        e.status === 401
+          ? 'This service requires an account to order. Please sign in.'
+          : (e.message ?? `Could not start checkout${e.status ? ` (HTTP ${e.status})` : ''}.`)
+      );
+    }
+  };
 
   if (cart.lines.length === 0) {
     return (
@@ -65,9 +120,22 @@ export default function Cart() {
         order from its own catalog — these amounts are for display.
       </p>
 
+      {error && <div className="form-error" role="alert">{error}</div>}
+
+      {!auth.isAuthenticated && (
+        <p className="muted checkout-account">
+          <strong>Have an account?</strong>{' '}
+          <Link to="/auth/login?next=/cart">Log in</Link> and come straight back — your cart is
+          kept, and your orders are then listed under your billing account. You do not need one
+          to buy.
+        </p>
+      )}
+
       <div className="form-row cart-actions">
         <Link to="/" className="btn-secondary">Keep shopping</Link>
-        <Link to="/checkout" className="btn-primary">Checkout</Link>
+        <button type="button" className="btn-primary" onClick={checkout} disabled={starting}>
+          {starting ? 'Starting…' : 'Checkout'}
+        </button>
       </div>
     </div>
   );

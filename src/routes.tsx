@@ -17,7 +17,6 @@ const Profile = lazy(() => import('./pages/profile/Profile'));
 const Shop = lazy(() => import('./pages/shop/Shop'));
 const Cart = lazy(() => import('./pages/shop/Cart'));
 const Product = lazy(() => import('./pages/shop/Product'));
-const Checkout = lazy(() => import('./pages/shop/Checkout'));
 const Orders = lazy(() => import('./pages/shop/Orders'));
 const Terms = lazy(() => import('./pages/legal/Terms'));
 const Privacy = lazy(() => import('./pages/legal/Privacy'));
@@ -121,7 +120,7 @@ export const routes: RouteObject[] = [
   // The shop is the front door, and it is outside AuthGuard: a guest must be
   // able to browse, pay, and see their receipt without ever creating an
   // account. Whether the service actually permits an anonymous `POST /orders`
-  // is its ACL's call — Checkout surfaces the 401 if it does not.
+  // is its ACL's call — the cart surfaces the 401 if it does not.
   //
   // It sits at `/` rather than under a prefix because that is where people
   // arrive. A shop reachable only by typing a path nobody links to is a shop
@@ -150,7 +149,9 @@ export const routes: RouteObject[] = [
       // Readable while the consents gate is up — see ConsentsGate.
       { path: 'terms', element: <Terms /> },
       { path: 'privacy', element: <Privacy /> },
-      { path: 'checkout', element: <Checkout /> },
+      // /checkout is gone: the cart starts the Stripe session itself. Kept as a
+      // redirect because it is a path people have bookmarked mid-purchase.
+      { path: 'checkout', element: <Navigate to="/cart" replace /> },
       // Both the history and where Stripe returns the buyer — the path must
       // match `stripeConfig.products.success-url` on the service. No guard: a
       // guest checkout comes back here too, and is told what it can be told.
