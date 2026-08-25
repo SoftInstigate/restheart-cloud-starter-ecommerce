@@ -249,3 +249,14 @@
 
 .checkout-account p { margin: 0; }
 .checkout-account p + p { margin-top: 0.375rem; }
+
+/* The infinite-scroll trigger. It has height so it can intersect at all — a
+   zero-height element under a grid never enters the viewport on some browsers. */
+.shop-sentinel {
+  height: 1px;
+}
+
+.shop-more {
+  margin-top: 1.5rem;
+  text-align: center;
+}

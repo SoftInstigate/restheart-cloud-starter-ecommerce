@@ -5,6 +5,9 @@ import { environment } from '../../environments/environment';
 import { useCart } from '../../shop/cart';
 import './Shop.css';
 
+/** How many products a page holds. Also how the end of the catalog is spotted. */
+const PAGE_SIZE = 24;
+
 export default function Shop() {
   const payments = usePayments();
   const cart = useCart();
@@ -28,18 +31,36 @@ export default function Shop() {
 
   const [items, setItems] = useState<CatalogItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [done, setDone] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinel = useRef<HTMLDivElement | null>(null);
 
+  /**
+   * The catalog arrives a page at a time — the service paginates, and asking
+   * for everything is not an option a shop with real stock ever has. So: load
+   * page 1, and load the next one when the reader reaches the bottom.
+   *
+   * A short page is the end. RESTHeart has no total in the body, and asking for
+   * a count is a second round-trip on every scroll to learn something the next
+   * page tells us for free: fewer items back than asked for means there is no
+   * more.
+   */
   useEffect(() => {
     let cancelled = false;
+    if (page > 1) setLoadingMore(true);
 
     payments
-      .getCatalog({ collection: environment.catalogCollection })
+      .getCatalog({ collection: environment.catalogCollection, page, pagesize: PAGE_SIZE })
       .then(catalog => {
         if (cancelled) return;
-        setItems(catalog);
+        setItems(prev => (page === 1 ? catalog : [...(prev ?? []), ...catalog]));
+        if (catalog.length < PAGE_SIZE) setDone(true);
+        setLoadingMore(false);
       })
       .catch((err: { status?: number; message?: string }) => {
         if (cancelled) return;
+        setLoadingMore(false);
         // A 404 here almost always means the service has no `stripe` plugin, or
         // the catalog collection is named something else — not that the shop is
         // empty. Saying so beats an empty grid.
@@ -55,7 +76,24 @@ export default function Shop() {
     return () => {
       cancelled = true;
     };
-  }, [payments]);
+  }, [payments, page]);
+
+  // The sentinel sits under the grid; when it comes into view there is another
+  // page to ask for. `rootMargin` starts the request a screen early, so the
+  // next products are usually there before the reader arrives at the gap.
+  useEffect(() => {
+    const node = sentinel.current;
+    if (!node || done || items === null) return;
+
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0]?.isIntersecting && !loadingMore) setPage(p => p + 1);
+      },
+      { rootMargin: '600px' }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [done, items, loadingMore]);
 
   if (error) {
     return (
@@ -129,6 +167,12 @@ export default function Shop() {
       {/* Announced to screen readers as well as shown: the cart count in the
           header changes too, but a number quietly going from 1 to 2 is easy to
           miss and impossible to hear. */}
+      {/* The observer watches this, not the last card: a card can be removed
+          from the DOM by a filter change while the observer still holds it. */}
+      {!done && <div ref={sentinel} className="shop-sentinel" aria-hidden="true" />}
+
+      {loadingMore && <p className="muted shop-more">Loading more…</p>}
+
       <div className="shop-toast-area" role="status" aria-live="polite">
         {justAdded && (
           <div className="shop-toast">

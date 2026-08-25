@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Outlet, Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@restheart-cloud/kit-react';
 import { isJustSignedUp, setJustSignedUp } from '../../just-signed-up';
+import { usePayments } from '@restheart-cloud/kit-react';
 import { useCart } from '../../shop/cart';
 import './Shell.css';
 
@@ -42,6 +43,8 @@ function useTheme() {
 export default function Shell() {
   const auth = useAuth();
   const cart = useCart();
+  const payments = usePayments();
+  const [portalError, setPortalError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -121,6 +124,29 @@ export default function Shell() {
     return () => document.removeEventListener('click', handleClick);
   }, [menuOpen]);
 
+  /**
+   * Stripe's own customer portal: cards on file, past payments, invoices.
+   *
+   * A hosted page, so this hands back a URL and we go there — there is nothing
+   * to render and no card details ever touch this app. It is a `POST`, because
+   * the session it creates is single-use.
+   */
+  const openPortal = async () => {
+    closeMenu();
+    setPortalError(null);
+    try {
+      const { url } = await payments.openBillingPortal();
+      window.location.href = url;
+    } catch (e) {
+      const err = e as { status?: number; message?: string };
+      setPortalError(
+        err.status === 403
+          ? 'The service ACL does not allow opening the billing portal. Re-run `rhc setup`.'
+          : (err.message ?? 'Could not open the billing portal.')
+      );
+    }
+  };
+
   const logout = async () => {
     closeMenu();
     await auth.logout();
@@ -195,8 +221,14 @@ export default function Shell() {
                     )}
                   </div>
                   <div className="dropdown-divider"></div>
-                  <Link ref={firstMenuItemRef} to="/account" className="dropdown-item" role="menuitem" onClick={closeMenu}>Account</Link>
+                  {/* "Account" and "Billing account" sat next to each other and
+                      read as the same thing twice. One is who you are, the other
+                      is who pays — so they are named for that now. */}
+                  <Link ref={firstMenuItemRef} to="/profile" className="dropdown-item" role="menuitem" onClick={closeMenu}>Your profile</Link>
                   <Link to="/billing" className="dropdown-item" role="menuitem" onClick={closeMenu}>Billing account</Link>
+                  <button type="button" className="dropdown-item" role="menuitem" onClick={openPortal}>
+                    Payments &amp; invoices
+                  </button>
                   <div className="dropdown-divider"></div>
                   <button type="button" className="dropdown-item dropdown-item-danger" role="menuitem" onClick={logout}>Logout</button>
                 </div>
@@ -205,6 +237,13 @@ export default function Shell() {
             )}
           </div>
         </header>
+
+        {portalError && (
+          <div className="welcome-banner" role="alert">
+            <p>{portalError}</p>
+            <button type="button" className="btn-dismiss" onClick={() => setPortalError(null)}>&#10005;</button>
+          </div>
+        )}
 
         {justSignedUp && (
           <div className="welcome-banner">

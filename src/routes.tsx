@@ -13,7 +13,7 @@ const Shell = lazy(() => import('./pages/shell/Shell'));
 const Billing = lazy(() => import('./pages/billing/Billing'));
 const NewBillingAccount = lazy(() => import('./pages/billing/new/NewBillingAccount'));
 const BillingAccount = lazy(() => import('./pages/billing/detail/BillingAccount'));
-const Account = lazy(() => import('./pages/account/Account'));
+const Profile = lazy(() => import('./pages/profile/Profile'));
 const Shop = lazy(() => import('./pages/shop/Shop'));
 const Cart = lazy(() => import('./pages/shop/Cart'));
 const Checkout = lazy(() => import('./pages/shop/Checkout'));
@@ -148,7 +148,7 @@ export const routes: RouteObject[] = [
 
       // Signed in only. The guard is per-route rather than around the shell,
       // so a guest keeps the header on every page a guest is allowed to see.
-      { path: 'account', element: <AuthGuard><Account /></AuthGuard> },
+      { path: 'profile', element: <AuthGuard><Profile /></AuthGuard> },
       { path: 'billing', element: <AuthGuard><Billing /></AuthGuard> },
       { path: 'billing/new', element: <AuthGuard><NewBillingAccount /></AuthGuard> },
       { path: 'billing/:id', element: <AuthGuard><BillingAccount /></AuthGuard> },

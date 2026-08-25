@@ -1,9 +1,9 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useAuth } from '@restheart-cloud/kit-react';
 import { Alert } from '../../ui/alert/Alert';
-import './Account.css';
+import './Profile.css';
 
-export default function Account() {
+export default function Profile() {
   const auth = useAuth();
 
   // Profile
