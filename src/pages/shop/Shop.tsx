@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { usePayments, formatPrice, type CatalogItem } from '@restheart-cloud/kit-react';
+import { useAuth, formatPrice, type CatalogItem } from '@restheart-cloud/kit-react';
 import { environment } from '../../environments/environment';
 import { useCart } from '../../shop/cart';
+import { CATEGORIES } from '../../catalog.seed';
 import './Shop.css';
 
 /** How many products a page holds. Also how the end of the catalog is spotted. */
 const PAGE_SIZE = 24;
 
+/** So a customer typing "3.5" does not hand Mongo a regex of their own. */
+const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 export default function Shop() {
-  const payments = usePayments();
+  const auth = useAuth();
   const cart = useCart();
 
   // Which item was just added, so the button can say so. Cleared on a timer —
@@ -36,23 +40,59 @@ export default function Shop() {
   const [loadingMore, setLoadingMore] = useState(false);
   const sentinel = useRef<HTMLDivElement | null>(null);
 
+  const [category, setCategory] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState('');
+
+  // Typing is not a query. Waiting a moment turns a word into one request
+  // instead of one per keystroke, and the catalog is on the other side of a
+  // network.
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(query.trim()), 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  // A new question starts at the first page. Without this, switching category
+  // while three pages deep asks the server for page four of a list that has
+  // one page.
+  useEffect(() => {
+    setPage(1);
+    setDone(false);
+    setItems(null);
+  }, [category, search]);
+
   /**
-   * The catalog arrives a page at a time — the service paginates, and asking
-   * for everything is not an option a shop with real stock ever has. So: load
-   * page 1, and load the next one when the reader reaches the bottom.
+   * The catalog, filtered and a page at a time.
    *
-   * A short page is the end. RESTHeart has no total in the body, and asking for
-   * a count is a second round-trip on every scroll to learn something the next
-   * page tells us for free: fewer items back than asked for means there is no
-   * more.
+   * Through `auth.api` rather than `payments.getCatalog`, which takes a page
+   * and a size but no filter — and filtering in the browser would search only
+   * what happens to be loaded, which for a paged list is a search that quietly
+   * lies. `api` attaches the session when there is one and nothing when there
+   * is not, so this is the same call for a guest and a customer.
+   *
+   * What comes back is still the ACL's decision: the permission carries a
+   * readFilter on `purchasable`, so unsellable products never reach the client
+   * whatever this asks for.
    */
   useEffect(() => {
     let cancelled = false;
     if (page > 1) setLoadingMore(true);
 
-    payments
-      .getCatalog({ collection: environment.catalogCollection, page, pagesize: PAGE_SIZE })
-      .then(catalog => {
+    const conditions: Record<string, unknown>[] = [];
+    if (category) conditions.push({ category });
+    // Anchored on neither end: "mug" should find "Enamel mug". `$options: 'i'`
+    // rather than lower-casing the field, which would need an index we do not
+    // control from here.
+    if (search) conditions.push({ name: { $regex: escapeRegex(search), $options: 'i' } });
+
+    const params = new URLSearchParams({ page: String(page), pagesize: String(PAGE_SIZE) });
+    if (conditions.length === 1) params.set('filter', JSON.stringify(conditions[0]));
+    if (conditions.length > 1) params.set('filter', JSON.stringify({ $and: conditions }));
+
+    auth
+      .api(`/${environment.catalogCollection}?${params}`)
+      .then(res => res.json())
+      .then((catalog: CatalogItem[]) => {
         if (cancelled) return;
         setItems(prev => (page === 1 ? catalog : [...(prev ?? []), ...catalog]));
         if (catalog.length < PAGE_SIZE) setDone(true);
@@ -76,7 +116,7 @@ export default function Shop() {
     return () => {
       cancelled = true;
     };
-  }, [payments, page]);
+  }, [auth, page, category, search]);
 
   // The sentinel sits under the grid; when it comes into view there is another
   // page to ask for. `rootMargin` starts the request a screen early, so the
@@ -118,8 +158,6 @@ export default function Shop() {
   // `purchasable: false` items stay visible but cannot be bought — the server
   // would refuse them at checkout anyway, so hiding the button is the honest
   // version of the same rule.
-  const purchasable = items.filter(i => i.purchasable);
-
   return (
     <div className="shop-page">
       {/* Cart and account moved to the site header, which every page has now.
@@ -131,7 +169,44 @@ export default function Shop() {
         </div>
       </header>
 
-      {purchasable.length === 0 && (
+      <div className="shop-filters">
+        <input
+          type="search"
+          className="shop-search"
+          placeholder="Search products"
+          aria-label="Search products"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+        />
+
+        <div className="shop-categories" role="group" aria-label="Filter by category">
+          <button
+            type="button"
+            className={`chip${category === null ? ' chip-active' : ''}`}
+            aria-pressed={category === null}
+            onClick={() => setCategory(null)}
+          >
+            All
+          </button>
+          {CATEGORIES.map(c => (
+            <button
+              key={c}
+              type="button"
+              className={`chip${category === c ? ' chip-active' : ''}`}
+              aria-pressed={category === c}
+              onClick={() => setCategory(category === c ? null : c)}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {items.length === 0 && (category || search) && (
+        <p className="muted">Nothing matches that. Try another category, or clear the search.</p>
+      )}
+
+      {items.length === 0 && !category && !search && (
         <p className="muted">
           The catalog has no purchasable products yet. Run <code>rhc setup --srv &lt;srvId&gt;</code>.
         </p>

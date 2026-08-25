@@ -297,3 +297,49 @@
 .order-status-pending_payment { background: var(--warn-bg, #fff8e1); color: var(--warn-fg, #7c5800); }
 .order-status-failed,
 .order-status-expired { background: var(--err-bg, #fdecea); color: var(--err-fg, #8b1a10); }
+
+/* Search and category chips. */
+.shop-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.shop-search {
+  width: 100%;
+  max-width: 24rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--border, #e5e5e5);
+  border-radius: 0.5rem;
+  font: inherit;
+  background: transparent;
+  color: inherit;
+}
+
+.shop-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--border, #e5e5e5);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.chip:hover { border-color: currentColor; }
+
+/* Pressed state carried by colour *and* weight: a chip that differs only in
+   background disappears at a glance and entirely in high contrast mode. */
+.chip-active {
+  border-color: currentColor;
+  font-weight: 600;
+}

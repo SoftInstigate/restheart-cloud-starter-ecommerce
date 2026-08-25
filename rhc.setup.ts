@@ -21,6 +21,7 @@
 import { defineSetup, step, fromEnv, isRedacted } from '@restheart-cloud/cli';
 import { isApiError } from '@restheart-cloud/cli';
 import type { AdminClient, PluginConfig, ServiceClient } from '@restheart-cloud/cli';
+import { DEMO_PRODUCTS } from './src/catalog.seed.ts';
 import { environment } from './src/environments/environment.ts';
 
 /** Where this shop is served from, no trailing slash. */
@@ -173,60 +174,6 @@ const products = (config: PluginConfig): PluginConfig =>
  */
 const money = (minorUnits: number) => ({ $numberInt: String(minorUnits) });
 
-const DEMO_PRODUCTS = [
-  {
-    _id: 'tee-classic',
-    type: 'physical',
-    name: 'Classic T-shirt',
-    description: 'Heavyweight cotton, unisex fit.',
-    image_url: 'https://placehold.co/600x600/1f2937/ffffff?text=T-shirt',
-    unit_amount: money(2500),
-    currency: 'eur',
-    purchasable: true,
-  },
-  {
-    _id: 'mug-enamel',
-    type: 'physical',
-    name: 'Enamel mug',
-    description: 'Holds 350ml of anything hot.',
-    image_url: 'https://placehold.co/600x600/0f766e/ffffff?text=Mug',
-    unit_amount: money(1450),
-    currency: 'eur',
-    purchasable: true,
-  },
-  {
-    _id: 'stickers-pack',
-    type: 'physical',
-    name: 'Sticker pack',
-    description: 'Twelve die-cut vinyl stickers.',
-    image_url: 'https://placehold.co/600x600/7c3aed/ffffff?text=Stickers',
-    unit_amount: money(600),
-    currency: 'eur',
-    purchasable: true,
-  },
-  {
-    _id: 'guide-pdf',
-    type: 'digital',
-    name: 'The RESTHeart guide (PDF)',
-    description: 'Downloadable, 180 pages.',
-    image_url: 'https://placehold.co/600x600/b45309/ffffff?text=Guide',
-    unit_amount: money(1990),
-    currency: 'eur',
-    purchasable: true,
-  },
-  {
-    // Deliberately not for sale: proves the shop filters on `purchasable`
-    // instead of showing everything the collection happens to hold.
-    _id: 'hoodie-soldout',
-    type: 'physical',
-    name: 'Hoodie (sold out)',
-    description: 'Out of stock — listed but not purchasable.',
-    image_url: 'https://placehold.co/600x600/475569/ffffff?text=Hoodie',
-    unit_amount: money(5900),
-    currency: 'eur',
-    purchasable: false,
-  },
-];
 
 /**
  * Bump these when you publish new documents, and re-run the setup. Every user
