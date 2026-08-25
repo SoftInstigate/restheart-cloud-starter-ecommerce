@@ -71,6 +71,26 @@ const origin = APP_ORIGIN.replace(/\/$/, '');
 // interpolates {ORDER_ID} and {ORDER_SECRET}. They go in the **fragment** so the
 // secret never reaches a server log or a Referer header — OrderReturn.tsx reads
 // it with readOrderRef() and strips it from the address bar at once.
+/**
+ * The emails a buyer expects after paying.
+ *
+ * Off by default, and silently: `sendOrderNotification` returns early when a
+ * notification is absent or disabled, so a shop that never configures these
+ * takes people's money and sends them nothing — which is what this one did.
+ *
+ * The templates are the plugin's own built-ins; a tenant that wants its own
+ * puts a path under `products.templates` keyed by the same names.
+ */
+const NOTIFICATIONS = {
+  'order-confirmed': { enabled: true },
+  'order-refunded': { enabled: true },
+};
+
+const notificationsOn = (p: PluginConfig): boolean =>
+  Object.keys(NOTIFICATIONS).every(
+    name => ((p['notifications'] as PluginConfig | undefined)?.[name] as PluginConfig | undefined)?.['enabled'] === true
+  );
+
 const SUCCESS_URL = `${origin}/order#order={ORDER_ID}&secret={ORDER_SECRET}`;
 const CANCEL_URL = `${origin}/cart`;
 
@@ -377,6 +397,7 @@ export default defineSetup('Ecommerce', [
         p['cancel-url'] === CANCEL_URL &&
         p['catalog-collection'] === CATALOG &&
         p['orders-collection'] === ORDERS &&
+        notificationsOn(p) &&
         configured(config['secret-key']) &&
         configured(config['webhook-secret']) &&
         // A secret named in the environment is one you are asking to be written,
@@ -408,6 +429,7 @@ export default defineSetup('Ecommerce', [
           'default-currency': 'eur',
           'success-url': SUCCESS_URL,
           'cancel-url': CANCEL_URL,
+          notifications: NOTIFICATIONS,
         },
       });
     },
