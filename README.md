@@ -123,7 +123,7 @@ Three things change, and nothing else:
 **Everything fails, or you see a login page you did not ask for.** `apiUrl` is probably pointing
 at `cloud-api.restheart.com` instead of your own service — see step 2.
 
-**Payment goes through but the confirmation page spins.** The webhook is not arriving. In Stripe,
+**Payment goes through but the order stays "pending".** The webhook is not arriving. In Stripe,
 open your event destination and look at the recent deliveries: a `401` or `404` means the URL is
 wrong — it must end in `/stripe/webhook` — and a `400` means the signing secret does not match the
 one you gave `rhc setup`. If `checkout.session.completed` is not in the selected events, nothing is

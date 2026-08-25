@@ -22,8 +22,23 @@ const OrderReturn = lazy(() => import('./pages/shop/OrderReturn'));
 
 const { emailRegistration, passwordReset, oauthLogin, teamInvitations } = environment.features;
 
+/**
+ * Every route is lazy, so there is a gap between navigating and the chunk
+ * arriving. `fallback={null}` filled it with nothing — a blank page for as long
+ * as the download takes, then the content.
+ *
+ * That reads worst exactly where it matters most. Coming back from Stripe, the
+ * buyer has just paid and is looking for confirmation; a blank screen is the
+ * moment they wonder whether it worked, and the page that says "Confirming your
+ * payment…" only appears once it is too late to reassure them.
+ *
+ * Deliberately quiet: a word, not a spinner. On a fast connection this is one
+ * frame, and something that flashes is worse than something that waits.
+ */
 function SuspenseWrapper({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={null}>{children}</Suspense>;
+  return (
+    <Suspense fallback={<p className="route-loading muted">Loading…</p>}>{children}</Suspense>
+  );
 }
 
 export const routes: RouteObject[] = [

@@ -882,3 +882,10 @@ code {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* The lazy-route placeholder. Centred and unobtrusive: on a fast connection it
+   is one frame, and anything eye-catching would flash. */
+.route-loading {
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
