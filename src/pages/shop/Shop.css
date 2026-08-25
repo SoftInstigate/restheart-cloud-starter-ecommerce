@@ -347,3 +347,55 @@
   border-color: currentColor;
   font-weight: 600;
 }
+
+/* Product detail. */
+.product-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 2.5rem;
+  align-items: start;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 48rem) {
+  .product-layout { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+}
+
+.product-image {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+}
+
+.product-image.placeholder { aspect-ratio: 1; }
+
+.product-detail h1 { margin: 0.25rem 0 0.5rem; }
+
+.product-price {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 1.25rem;
+}
+
+.product-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  margin: 1.75rem 0;
+  font-size: 0.9375rem;
+}
+
+.product-facts dt { color: var(--color-text-muted); }
+.product-facts dd { margin: 0; }
+
+.product-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* The card's link areas: the underline belongs on hover, not at rest — a grid
+   of underlined product names reads as a list of links rather than a shop. */
+.shop-item-link { display: block; }
+.shop-item-name a { color: inherit; text-decoration: none; }
+.shop-item-name a:hover { text-decoration: underline; }

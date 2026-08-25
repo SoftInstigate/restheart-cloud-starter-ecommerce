@@ -16,6 +16,7 @@ const BillingAccount = lazy(() => import('./pages/billing/detail/BillingAccount'
 const Profile = lazy(() => import('./pages/profile/Profile'));
 const Shop = lazy(() => import('./pages/shop/Shop'));
 const Cart = lazy(() => import('./pages/shop/Cart'));
+const Product = lazy(() => import('./pages/shop/Product'));
 const Checkout = lazy(() => import('./pages/shop/Checkout'));
 const Orders = lazy(() => import('./pages/shop/Orders'));
 const Terms = lazy(() => import('./pages/legal/Terms'));
@@ -142,6 +143,9 @@ export const routes: RouteObject[] = [
     ),
     children: [
       { index: true, element: <Shop /> },
+      // A URL people bookmark and paste to each other, so it loads its own
+      // product rather than reading one out of the grid's state.
+      { path: 'product/:id', element: <Product /> },
       { path: 'cart', element: <Cart /> },
       // Readable while the consents gate is up — see ConsentsGate.
       { path: 'terms', element: <Terms /> },

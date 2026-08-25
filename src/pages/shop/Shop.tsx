@@ -240,9 +240,16 @@ export default function Shop() {
       <div className="shop-grid">
         {items.map(item => (
           <article key={item._id} className="card shop-item">
-            {item.image_url && <img src={item.image_url} alt="" className="shop-item-image" />}
+            {/* The image and the name lead to the product; the button does not.
+                One link around the whole card would have swallowed "Add to
+                cart" — a card you cannot press without navigating. */}
+            <Link to={`/product/${encodeURIComponent(item._id)}`} className="shop-item-link">
+              {item.image_url && <img src={item.image_url} alt="" className="shop-item-image" />}
+            </Link>
             <div className="shop-item-body">
-              <h2 className="shop-item-name">{item.name}</h2>
+              <h2 className="shop-item-name">
+                <Link to={`/product/${encodeURIComponent(item._id)}`}>{item.name}</Link>
+              </h2>
               {item.description && <p className="muted shop-item-desc">{item.description}</p>}
               <div className="shop-item-footer">
                 <span className="shop-item-price">
