@@ -37,9 +37,39 @@ apiUrl: 'https://xxxxxx.eu-central-1-free-1.restheart.com',
 This installs the payment plugin, creates the collections, opens the shop to visitors without an
 account, and puts a few demo products in the catalogue.
 
-Get your Stripe **test** keys first — the secret key from
-[the API keys page](https://dashboard.stripe.com/test/apikeys), and the webhook signing secret
-from a webhook endpoint you add there pointing at your service.
+First you need two things from Stripe, both in **test mode** — check the toggle at the top right
+of the Stripe dashboard says *Test mode*.
+
+**The secret key.** [Developers → API keys](https://dashboard.stripe.com/test/apikeys), copy the
+one starting `sk_test_`.
+
+**The webhook signing secret.** This one takes a minute: Stripe has to know where to tell your
+service that a payment went through, and your service has to know the message really came from
+Stripe.
+
+In [Developers → Webhooks](https://dashboard.stripe.com/test/webhooks), add an event destination:
+
+1. **Events** — scope *Your account*, then select these six:
+   ```
+   checkout.session.completed
+   checkout.session.async_payment_succeeded
+   checkout.session.async_payment_failed
+   checkout.session.expired
+   charge.refunded
+   charge.dispute.created
+   ```
+   The first is the one that marks an order paid. The rest cover slow payment methods, abandoned
+   checkouts, refunds and disputes. Leave the API version as Stripe suggests it.
+2. **Destination type** — *Webhook endpoint*.
+3. **Destination** — the URL is your service plus `/stripe/webhook`:
+   ```
+   https://xxxxxx.eu-central-1-free-1.restheart.com/stripe/webhook
+   ```
+
+Save it, then reveal the **signing secret** on the destination you just made. It starts `whsec_`.
+
+> Your service is on the public internet, so Stripe reaches it directly. You do not need the
+> Stripe CLI or `stripe listen` — those are for a webhook arriving at your laptop.
 
 ```bash
 npm install -g @restheart-cloud/cli
@@ -93,8 +123,11 @@ Three things change, and nothing else:
 **Everything fails, or you see a login page you did not ask for.** `apiUrl` is probably pointing
 at `cloud-api.restheart.com` instead of your own service — see step 2.
 
-**Payment goes through but the confirmation page spins.** Check the webhook endpoint in Stripe
-points at your service URL, and that its signing secret matches the one you gave `rhc setup`.
+**Payment goes through but the confirmation page spins.** The webhook is not arriving. In Stripe,
+open your event destination and look at the recent deliveries: a `401` or `404` means the URL is
+wrong — it must end in `/stripe/webhook` — and a `400` means the signing secret does not match the
+one you gave `rhc setup`. If `checkout.session.completed` is not in the selected events, nothing is
+sent at all.
 
 ## More
 
