@@ -471,6 +471,19 @@ export default defineSetup('Ecommerce', [
         mongo: { readFilter: { 'payer.id': '@user.team._id' } },
       }),
   }),
+  step('customers may open the Stripe billing portal', {
+    // Signed in only: the portal shows the cards and invoices of a Stripe
+    // Customer, and a guest checkout has none. A customer who has not bought
+    // anything yet has none either — the endpoint answers 402 and the menu
+    // says so, which beats hiding the entry until a purchase exists.
+    check: ({ service }) => permissionGrants(service, 'stripe-portal', ['user']),
+    apply: ({ service }) =>
+      service.putPermission('stripe-portal', {
+        predicate: "path('/stripe/portal') and method(POST)",
+        roles: ['user'],
+        priority: 100,
+      }),
+  }),
   step('sample catalog, if the shop is empty', {
     /**
      * The only step here that writes **content** rather than configuration, and

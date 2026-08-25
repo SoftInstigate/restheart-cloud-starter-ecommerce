@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Outlet, Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@restheart-cloud/kit-react';
 import { isJustSignedUp, setJustSignedUp } from '../../just-signed-up';
+import { usePayments } from '@restheart-cloud/kit-react';
 import { useCart } from '../../shop/cart';
 import './Shell.css';
 
@@ -42,6 +43,8 @@ function useTheme() {
 export default function Shell() {
   const auth = useAuth();
   const cart = useCart();
+  const payments = usePayments();
+  const [portalError, setPortalError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -137,6 +140,32 @@ export default function Shell() {
     return () => document.removeEventListener('click', handleClick);
   }, [menuOpen]);
 
+  /**
+   * Stripe's customer portal: cards on file, past payments, invoices.
+   *
+   * It refused this shop until billing accounts had a Stripe Customer — the
+   * portal has nothing to show without one, and products mode never made one.
+   * Now it does, so the page works here as it does for a subscriber: hosted by
+   * Stripe, so this hands back a URL and we go there.
+   */
+  const openPortal = async () => {
+    closeMenu();
+    setPortalError(null);
+    try {
+      const { url } = await payments.openBillingPortal();
+      window.location.href = url;
+    } catch (e) {
+      const err = e as { status?: number; message?: string };
+      setPortalError(
+        err.status === 402
+          ? 'Nothing to show yet — this opens once you have bought something.'
+          : err.status === 403
+            ? 'The service ACL does not allow opening the billing portal. Re-run `rhc setup`.'
+            : (err.message ?? 'Could not open the billing portal.')
+      );
+    }
+  };
+
   const logout = async () => {
     closeMenu();
     await auth.logout();
@@ -216,6 +245,9 @@ export default function Shell() {
                       is who pays — so they are named for that now. */}
                   <Link ref={firstMenuItemRef} to="/profile" className="dropdown-item" role="menuitem" onClick={closeMenu}>Your profile</Link>
                   <Link to="/orders" className="dropdown-item" role="menuitem" onClick={closeMenu}>Your orders</Link>
+                  <button type="button" className="dropdown-item" role="menuitem" onClick={openPortal}>
+                    Payments &amp; invoices
+                  </button>
                   <Link to="/billing" className="dropdown-item" role="menuitem" onClick={closeMenu}>Billing account</Link>
                   <div className="dropdown-divider"></div>
                   <button type="button" className="dropdown-item dropdown-item-danger" role="menuitem" onClick={logout}>Logout</button>
@@ -225,6 +257,13 @@ export default function Shell() {
             )}
           </div>
         </header>
+
+        {portalError && (
+          <div className="welcome-banner" role="alert">
+            <p>{portalError}</p>
+            <button type="button" className="btn-dismiss" onClick={() => setPortalError(null)}>&#10005;</button>
+          </div>
+        )}
 
         {justSignedUp && (
           <div className="welcome-banner">
