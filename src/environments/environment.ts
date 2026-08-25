@@ -1,5 +1,12 @@
 export const environment = {
-  // TODO: point this at the service that has the `stripe` plugin enabled.
+  // Your RESTHeart Cloud **service**, the one with the `stripe` plugin enabled —
+  // e.g. 'https://ea820b.eu-central-1-free-1.restheart.com'. Copy it from the
+  // service's Connect page in the console.
+  //
+  // Not the admin node (`cloud-api…`): that is RESTHeart Cloud's own control
+  // plane, it serves no tenant collection, and pointing here at it answers every
+  // `/catalog` request with 401 — which reads like a permissions problem and is
+  // not one.
   apiUrl: 'https://acac36.eu-central-1-free-1.restheart.com',
 
   /**
