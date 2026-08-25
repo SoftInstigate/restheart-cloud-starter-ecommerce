@@ -33,7 +33,7 @@ export default function Checkout() {
 
   if (cart.lines.length === 0) {
     return (
-      <div className="shop-page shop-narrow">
+      <div className="shop-page shop-narrow shop-empty">
         <h1>Checkout</h1>
         <p className="muted">Your cart is empty.</p>
         <Link to="/" className="btn-primary">Browse the shop</Link>

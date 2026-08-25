@@ -8,7 +8,7 @@ export default function Cart() {
 
   if (cart.lines.length === 0) {
     return (
-      <div className="shop-page shop-narrow">
+      <div className="shop-page shop-narrow shop-empty">
         <h1>Your cart</h1>
         <p className="muted">Nothing in it yet.</p>
         <Link to="/" className="btn-primary">Browse the shop</Link>

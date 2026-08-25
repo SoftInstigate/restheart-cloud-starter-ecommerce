@@ -8,6 +8,20 @@
   max-width: 40rem;
 }
 
+/*
+ * "Nothing in it yet." and the button under it were touching: a `.muted`
+ * paragraph's bottom margin is sized for running text, not for the gap before
+ * a call to action.
+ *
+ * A marker class rather than a layout one — making the container a flex column
+ * would turn the heading into a flex item too and re-space a page that is fine
+ * everywhere else.
+ */
+.shop-empty .btn-primary {
+  display: inline-block;
+  margin-top: 1.5rem;
+}
+
 .shop-header {
   display: flex;
   align-items: flex-end;
