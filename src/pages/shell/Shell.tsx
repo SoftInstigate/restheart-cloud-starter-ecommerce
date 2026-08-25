@@ -199,6 +199,7 @@ export default function Shell() {
                       read as the same thing twice. One is who you are, the other
                       is who pays — so they are named for that now. */}
                   <Link ref={firstMenuItemRef} to="/profile" className="dropdown-item" role="menuitem" onClick={closeMenu}>Your profile</Link>
+                  <Link to="/orders" className="dropdown-item" role="menuitem" onClick={closeMenu}>Your orders</Link>
                   <Link to="/billing" className="dropdown-item" role="menuitem" onClick={closeMenu}>Billing account</Link>
                   <div className="dropdown-divider"></div>
                   <button type="button" className="dropdown-item dropdown-item-danger" role="menuitem" onClick={logout}>Logout</button>

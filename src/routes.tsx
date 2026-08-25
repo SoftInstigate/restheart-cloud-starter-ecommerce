@@ -17,7 +17,7 @@ const Profile = lazy(() => import('./pages/profile/Profile'));
 const Shop = lazy(() => import('./pages/shop/Shop'));
 const Cart = lazy(() => import('./pages/shop/Cart'));
 const Checkout = lazy(() => import('./pages/shop/Checkout'));
-const OrderReturn = lazy(() => import('./pages/shop/OrderReturn'));
+const Orders = lazy(() => import('./pages/shop/Orders'));
 
 const { emailRegistration, passwordReset, oauthLogin, teamInvitations } = environment.features;
 
@@ -142,9 +142,14 @@ export const routes: RouteObject[] = [
       { index: true, element: <Shop /> },
       { path: 'cart', element: <Cart /> },
       { path: 'checkout', element: <Checkout /> },
-      // Stripe returns the buyer here. The path must match
-      // `stripeConfig.products.success-url` on the service.
-      { path: 'order', element: <OrderReturn /> },
+      // Both the history and where Stripe returns the buyer — the path must
+      // match `stripeConfig.products.success-url` on the service. No guard: a
+      // guest checkout comes back here too, and is told what it can be told.
+      { path: 'orders', element: <Orders /> },
+      // Kept so a success URL configured before the merge still lands
+      // somewhere: the order reference travels in the fragment, which a
+      // redirect preserves.
+      { path: 'order', element: <Navigate to="/orders" replace /> },
 
       // Signed in only. The guard is per-route rather than around the shell,
       // so a guest keeps the header on every page a guest is allowed to see.

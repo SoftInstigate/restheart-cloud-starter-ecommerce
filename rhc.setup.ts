@@ -91,7 +91,7 @@ const notificationsOn = (p: PluginConfig): boolean =>
     name => ((p['notifications'] as PluginConfig | undefined)?.[name] as PluginConfig | undefined)?.['enabled'] === true
   );
 
-const SUCCESS_URL = `${origin}/order#order={ORDER_ID}&secret={ORDER_SECRET}`;
+const SUCCESS_URL = `${origin}/orders#order={ORDER_ID}&secret={ORDER_SECRET}`;
 const CANCEL_URL = `${origin}/cart`;
 
 /** A stored secret reads back as bullets; one that was never set reads back blank. */
@@ -340,7 +340,10 @@ const CONDITION = [
   `not (equals(@user.latestConsents.tos, '${TOS_VERSION}') and equals(@user.latestConsents.pp, '${PP_VERSION}'))`,
 ].join(' and ');
 
-const CLAIMS = ['latestConsents/tos', 'latestConsents/pp'];
+// `team` is here for the orders list: its permission filters on the billing
+// account, and a readFilter reading `@user.team._id` can only see what the
+// token carries.
+const CLAIMS = ['latestConsents/tos', 'latestConsents/pp', 'team'];
 
 const rules = (config: PluginConfig): unknown[] =>
   (config['rules'] as unknown[] | undefined) ?? [];
@@ -488,6 +491,23 @@ export default defineSetup('Ecommerce', [
       }),
   }),
 
+  step('customers may list the orders of their billing account', {
+    // Different from `orders-read-anon`, and deliberately so. A guest proves
+    // ownership of one order with the secret it was given; a signed-in customer
+    // has a session, and what they are entitled to is every order charged to
+    // their billing account — their own and those of anyone they share it with.
+    //
+    // The filter is the whole permission. `path('/orders')` with no filter
+    // would hand every customer the entire order book.
+    check: ({ service }) => permissionGrants(service, 'orders-list-own', ['user']),
+    apply: ({ service }) =>
+      service.putPermission('orders-list-own', {
+        predicate: `path(/${ORDERS}) and method(GET)`,
+        roles: ['user'],
+        priority: 90,
+        mongo: { readFilter: { 'payer.id': '@user.team._id' } },
+      }),
+  }),
   step('sample catalog, if the shop is empty', {
     /**
      * The only step here that writes **content** rather than configuration, and
