@@ -41,6 +41,54 @@ const CANCEL_URL = `${origin}/cart`;
 const configured = (value: unknown) =>
   isRedacted(value) || (typeof value === 'string' && value.length > 0);
 
+/**
+ * The value to write for a secret: the environment variable when it is set,
+ * otherwise whatever the service already holds.
+ *
+ * **The variable wins, and that is the point.** Keeping the stored value blindly
+ * makes a secret impossible to *change* from here: any non-empty string counts
+ * as configured, including a stale placeholder, so exporting the right key and
+ * re-running does nothing and reports the step satisfied. Which is exactly how
+ * `sk_test_dummy_for_karate`, left by a test, survived a setup run.
+ *
+ * Not exporting it stays safe, which is what the guard was for: a re-run against
+ * a configured service still needs no secrets in the environment.
+ *
+ * Reading `process.env` directly rather than through `fromEnv` because this has
+ * to *ask whether* the variable is set, and `fromEnv` answers that by throwing.
+ * The marker is still what gets returned, so the value itself is resolved as
+ * late as ever — on the way to the wire, and nowhere else.
+ */
+/**
+ * Secrets this run has already pushed from the environment.
+ *
+ * Needed because "the variable wins" is an instruction, and a `check` asks about
+ * a *state*. The state it would want — "the stored secret equals the one in the
+ * environment" — cannot be read: the server returns bullets. So the check asks
+ * the closest true question instead: has the value the environment names already
+ * been written, in this run?
+ *
+ * Without it the check stays false for as long as the variable is exported, the
+ * re-check after the apply fails too, and every CI run — where the variables are
+ * always set — ends in a red step that actually succeeded.
+ */
+const pushed = new Set<string>();
+
+const wantsReplacing = (name: string) => {
+  const v = process.env[name];
+  return v !== undefined && v !== '' && !pushed.has(name);
+};
+
+const secret = (name: string, stored: unknown) => {
+  const fromEnvironment = process.env[name];
+  if (fromEnvironment !== undefined && fromEnvironment !== '') {
+    pushed.add(name);
+    return fromEnv(name);
+  }
+  if (configured(stored)) return stored;
+  return fromEnv(name);
+};
+
 const products = (config: PluginConfig): PluginConfig =>
   (config['products'] as PluginConfig | undefined) ?? {};
 
@@ -256,7 +304,12 @@ export default defineSetup('Ecommerce', [
         p['catalog-collection'] === CATALOG &&
         p['orders-collection'] === ORDERS &&
         configured(config['secret-key']) &&
-        configured(config['webhook-secret'])
+        configured(config['webhook-secret']) &&
+        // A secret named in the environment is one you are asking to be written,
+        // so the step is not satisfied until it has been. Without this the apply
+        // above would never run: the check would pass on the old value.
+        !wantsReplacing('STRIPE_SECRET_KEY') &&
+        !wantsReplacing('STRIPE_WEBHOOK_SECRET')
       );
     },
     async apply({ admin, srvId }) {
@@ -271,12 +324,8 @@ export default defineSetup('Ecommerce', [
       // nothing and read, to anyone opening the config, as the switch.
       await admin.updatePluginConfig(srvId, 'stripe', {
         ...current,
-        'secret-key': configured(current['secret-key'])
-          ? current['secret-key']
-          : fromEnv('STRIPE_SECRET_KEY'),
-        'webhook-secret': configured(current['webhook-secret'])
-          ? current['webhook-secret']
-          : fromEnv('STRIPE_WEBHOOK_SECRET'),
+        'secret-key': secret('STRIPE_SECRET_KEY', current['secret-key']),
+        'webhook-secret': secret('STRIPE_WEBHOOK_SECRET', current['webhook-secret']),
         products: {
           ...products(current),
           enabled: true,
