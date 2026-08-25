@@ -631,7 +631,7 @@ code {
    ========================================================================== */
 
 .auth-page {
-  min-height: 100vh;
+  min-height: calc(var(--vh, 1vh) * 100);
   display: flex;
   align-items: center;
   /* Falls back to plain "center" on browsers that don't support "safe" —
@@ -742,7 +742,7 @@ code {
    ========================================================================== */
 
 .config-page {
-  min-height: 100vh;
+  min-height: calc(var(--vh, 1vh) * 100);
   display: flex;
   align-items: center;
   justify-content: center;

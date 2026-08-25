@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { trackViewportHeight } from './viewport-height';
 import { useRoutes } from 'react-router-dom';
 import { isValidApiBaseUrl, setToken, scheduleRefresh } from '@restheart-cloud/kit-react';
 import { environment } from './environments/environment';
@@ -35,6 +36,11 @@ function consumeFragmentToken(): void {
 const apiConfigured = isValidApiBaseUrl(environment.apiUrl);
 
 export function App() {
+  // Above the router, not in the shell: the auth pages and the config screen
+  // render outside it, and a login form under a mobile keyboard is exactly the
+  // case `--vh` exists for.
+  useEffect(() => trackViewportHeight(), []);
+
   useEffect(() => {
     if (!apiConfigured) {
       console.error(
