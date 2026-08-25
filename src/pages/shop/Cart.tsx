@@ -65,7 +65,7 @@ export default function Cart() {
         order from its own catalog — these amounts are for display.
       </p>
 
-      <div className="form-row">
+      <div className="form-row cart-actions">
         <Link to="/" className="btn-secondary">Keep shopping</Link>
         <Link to="/checkout" className="btn-primary">Checkout</Link>
       </div>

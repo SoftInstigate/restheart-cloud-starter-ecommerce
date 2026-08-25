@@ -83,6 +83,19 @@ const origin = APP_ORIGIN.replace(/\/$/, '');
  * The templates are the plugin's own built-ins; a tenant that wants its own
  * puts a path under `products.templates` keyed by the same names.
  */
+/**
+ * Where this shop will ship, as ISO 3166-1 alpha-2 codes.
+ *
+ * **Edit this.** Stripe has no "anywhere": the allowed countries are an
+ * explicit list, and an empty one means Checkout never shows the address form
+ * at all — which is how orders ended up with `shipping_address: null` while the
+ * shop was charging for delivery.
+ *
+ * Ship somewhere you cannot actually reach and you owe a refund, so a short
+ * list you mean is better than a long one you do not.
+ */
+const SHIPPING_COUNTRIES = ['IT', 'FR', 'DE', 'ES', 'AT', 'BE', 'NL', 'PT'];
+
 const NOTIFICATIONS = {
   'order-confirmed': { enabled: true },
   'order-refunded': { enabled: true },
@@ -347,6 +360,9 @@ export default defineSetup('Ecommerce', [
         p['catalog-collection'] === CATALOG &&
         p['orders-collection'] === ORDERS &&
         notificationsOn(p) &&
+        SHIPPING_COUNTRIES.every(c =>
+          ((p['shipping-address-countries'] as string[] | undefined) ?? []).includes(c)
+        ) &&
         configured(config['secret-key']) &&
         configured(config['webhook-secret']) &&
         // A secret named in the environment is one you are asking to be written,
@@ -379,6 +395,7 @@ export default defineSetup('Ecommerce', [
           'success-url': SUCCESS_URL,
           'cancel-url': CANCEL_URL,
           notifications: NOTIFICATIONS,
+          'shipping-address-countries': SHIPPING_COUNTRIES,
         },
       });
     },

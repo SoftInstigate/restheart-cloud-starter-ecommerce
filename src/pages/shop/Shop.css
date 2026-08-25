@@ -399,3 +399,21 @@
 .shop-item-link { display: block; }
 .shop-item-name a { color: inherit; text-decoration: none; }
 .shop-item-name a:hover { text-decoration: underline; }
+
+/* The small print above these is set for reading, not for the gap before the
+   one button on the page that costs money. */
+.cart-actions {
+  margin-top: 2rem;
+}
+
+/* The delivery address on an order — a record, not a form. */
+.order-address {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: var(--border-width) solid var(--color-border);
+  font-style: normal;
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+}

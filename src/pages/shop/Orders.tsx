@@ -127,6 +127,28 @@ export default function Orders() {
     };
   }, [auth, auth.isAuthenticated]);
 
+  /**
+   * Where the parcel went.
+   *
+   * Stripe collects it on its own page and the webhook writes it onto the
+   * order, so this is a record rather than a form — there is nothing to edit
+   * here, and the address the customer typed at Stripe is the address the
+   * server has.
+   */
+  const address = (order: Order) => {
+    const a = (order as unknown as { shipping_address?: Record<string, string> }).shipping_address;
+    if (!a) return null;
+    const lines = [a.name, a.line1, a.line2, [a.postal_code, a.city].filter(Boolean).join(' '),
+                   [a.state, a.country].filter(Boolean).join(' ')].filter(Boolean);
+    return (
+      <address className="order-address">
+        {lines.map((l, i) => (
+          <span key={i}>{l}</span>
+        ))}
+      </address>
+    );
+  };
+
   const line = (order: Order) => (
     <li key={order._id.$oid} className="order-row">
       <div className="order-row-main">
@@ -145,6 +167,7 @@ export default function Orders() {
         <span>Total</span>
         <strong>{formatPrice(order.amount_total, order.currency)}</strong>
       </div>
+      {address(order)}
     </li>
   );
 
