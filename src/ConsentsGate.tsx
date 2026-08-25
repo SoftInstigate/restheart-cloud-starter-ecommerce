@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '@restheart-cloud/kit-react';
 import { isBlocked, setBlocked, subscribe } from './consents-signal';
 import './ConsentsGate.css';
@@ -15,6 +16,9 @@ import './ConsentsGate.css';
  * The overlay is user experience, not enforcement: remove it with the dev
  * tools and every request still comes back `451`. The rule lives on the server.
  */
+/** Readable even while blocked. Kept beside the routes that serve them. */
+const LEGAL_PATHS = ['/terms', '/privacy'];
+
 export function ConsentsGate({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const [blocked, setBlockedState] = useState(isBlocked);
@@ -27,6 +31,15 @@ export function ConsentsGate({ children }: { children: React.ReactNode }) {
   const [acceptedPp, setAcceptedPp] = useState(false);
 
   useEffect(() => subscribe(setBlockedState), []);
+
+  // The two documents are readable while the gate is up, and have to be: a
+  // document you cannot open is a document you cannot agree to. They were
+  // static files in `public/` for exactly this reason, which cost them the
+  // header, the footer and the theme; letting the routes through costs
+  // nothing and enforces nothing either way — the server is still answering
+  // 451 to every request that matters.
+  const { pathname } = useLocation();
+  if (LEGAL_PATHS.includes(pathname)) return <>{children}</>;
 
   if (!blocked) return <>{children}</>;
 
@@ -74,7 +87,7 @@ export function ConsentsGate({ children }: { children: React.ReactNode }) {
           />
           <span>
             I have read and accept the{' '}
-            <a href="/terms.html" target="_blank" rel="noreferrer">Terms of Service</a>
+            <a href="/terms" target="_blank" rel="noreferrer">Terms of Service</a>
           </span>
         </label>
 
@@ -86,7 +99,7 @@ export function ConsentsGate({ children }: { children: React.ReactNode }) {
           />
           <span>
             I have read and accept the{' '}
-            <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy Policy</a>
+            <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>
           </span>
         </label>
 

@@ -18,6 +18,8 @@ const Shop = lazy(() => import('./pages/shop/Shop'));
 const Cart = lazy(() => import('./pages/shop/Cart'));
 const Checkout = lazy(() => import('./pages/shop/Checkout'));
 const Orders = lazy(() => import('./pages/shop/Orders'));
+const Terms = lazy(() => import('./pages/legal/Terms'));
+const Privacy = lazy(() => import('./pages/legal/Privacy'));
 
 const { emailRegistration, passwordReset, oauthLogin, teamInvitations } = environment.features;
 
@@ -141,6 +143,9 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <Shop /> },
       { path: 'cart', element: <Cart /> },
+      // Readable while the consents gate is up — see ConsentsGate.
+      { path: 'terms', element: <Terms /> },
+      { path: 'privacy', element: <Privacy /> },
       { path: 'checkout', element: <Checkout /> },
       // Both the history and where Stripe returns the buyer — the path must
       // match `stripeConfig.products.success-url` on the service. No guard: a

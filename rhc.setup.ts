@@ -22,6 +22,7 @@ import { defineSetup, step, fromEnv, isRedacted } from '@restheart-cloud/cli';
 import { isApiError } from '@restheart-cloud/cli';
 import type { AdminClient, PluginConfig, ServiceClient } from '@restheart-cloud/cli';
 import { DEMO_PRODUCTS } from './src/catalog.seed.ts';
+import { TOS_VERSION, PP_VERSION } from './src/legal-versions.ts';
 import { environment } from './src/environments/environment.ts';
 
 /** Where this shop is served from, no trailing slash. */
@@ -180,8 +181,6 @@ const money = (minorUnits: number) => ({ $numberInt: String(minorUnits) });
  * meets the form again on their next request; the acceptance they already gave
  * stays in the `consents` history.
  */
-const TOS_VERSION = '2026-07-01';
-const PP_VERSION = '2026-07-01';
 
 const SCHEMA_ID = 'userConsentsSchema';
 const RULE_ID = 'consentsGate';

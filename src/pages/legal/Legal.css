@@ -1,0 +1,28 @@
+.legal-page {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+.legal-page h1 { margin: 0 0 0.25rem; }
+.legal-page h2 { margin: 2.25rem 0 0.5rem; font-size: 1.15rem; }
+.legal-version { margin: 0 0 2rem; font-size: 0.9rem; }
+
+.legal-placeholder {
+  margin: 0 0 2.5rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--warn-line, #f0d48a);
+  background: var(--warn-bg, #fff8e1);
+  color: var(--warn-fg, #4a3c00);
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.legal-page ul { padding-left: 1.2rem; }
+
+.legal-footer {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border, #e3e7ec);
+  font-size: 0.9rem;
+}

@@ -81,11 +81,10 @@ src/
     home/                 ← PLACEHOLDER showcase — replace with your content
     auth/                 ← login, signup, verify, forgot/reset password
     invitations/accept/   ← one page, three flows (see below)
-    teams/                ← list, detail (members/invites/settings), new
-    account/              ← profile + change password
-public/
-  terms.html              ← PLACEHOLDER — replace with your own
-  privacy.html            ← PLACEHOLDER — replace with your own
+    billing/              ← billing accounts: list, detail (members/invites), new
+    profile/              ← name, surname, change password
+    legal/                ← Terms and Privacy — app pages, readable while the gate is up
+    shop/                 ← catalog, cart, checkout, orders
 ```
 
 ### Route map
@@ -216,7 +215,8 @@ How it works, in three pieces:
 |---|---|
 | `src/consents-signal.ts` | `config.onError` watches for a `451` and raises a flag |
 | `src/ConsentsGate.tsx` | Sits above the router; swaps the whole app for the acceptance form while the flag is up |
-| `public/terms.html`, `public/privacy.html` | Placeholder documents — replace with your own |
+| `src/pages/legal/Terms.tsx`, `Privacy.tsx` | Placeholder documents — replace with your own |
+| `src/legal-versions.ts` | The versions the pages show and the setup enforces — one place |
 
 The `451` comes from the Guards rule on the service, and `/users/me` is one of the requests it
 refuses — so restoring the session is what trips the gate. There is nothing to probe.

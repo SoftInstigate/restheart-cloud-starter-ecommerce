@@ -164,16 +164,16 @@ export default function Checkout() {
               />
               <span>
                 I have read and accept the{' '}
-                <a href="/terms.html" target="_blank" rel="noreferrer">Terms of Service</a> and the{' '}
-                <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy Policy</a>
+                <a href="/terms" target="_blank" rel="noreferrer">Terms of Service</a> and the{' '}
+                <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>
               </span>
             </label>
           </>
         ) : (
           <p className="muted">
             Ordering as <strong>{auth.user?._id}</strong>. You accepted the{' '}
-            <a href="/terms.html" target="_blank" rel="noreferrer">Terms</a> and{' '}
-            <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy Policy</a> when you
+            <a href="/terms" target="_blank" rel="noreferrer">Terms</a> and{' '}
+            <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a> when you
             signed up.
           </p>
         )}

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import './Footer.css';
 
 /**
@@ -9,10 +10,8 @@ import './Footer.css';
  * identify itself, and payment providers ask for it too. Replace all of it
  * before you take a real payment.
  *
- * The two links point at `public/terms.html` and `public/privacy.html`, which
- * are served as plain files. That is on purpose: they have to be readable by
- * someone the app is refusing to serve — the consents gate blocks the app until
- * they have been accepted, and a document you cannot open is a document you
+ * The two links are app routes, and `ConsentsGate` lets them through while it
+ * is blocking everything else: a document you cannot open is a document you
  * cannot agree to.
  */
 export function Footer() {
@@ -32,8 +31,8 @@ export function Footer() {
         </div>
 
         <nav className="site-footer-links" aria-label="Legal">
-          <a href="/terms.html">Terms of Service</a>
-          <a href="/privacy.html">Privacy Policy</a>
+          <Link to="/terms">Terms of Service</Link>
+          <Link to="/privacy">Privacy Policy</Link>
         </nav>
       </div>
 
