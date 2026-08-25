@@ -72,8 +72,7 @@ Save it, then reveal the **signing secret** on the destination you just made. It
 > Stripe CLI or `stripe listen` — those are for a webhook arriving at your laptop.
 
 ```bash
-npm install -g @restheart-cloud/cli
-npm i -D @restheart-cloud/cli
+npm install -g @restheart-cloud/cli   # the rhc command; the setup file's own copy came with npm install
 
 export STRIPE_SECRET_KEY=sk_test_...
 export STRIPE_WEBHOOK_SECRET=whsec_...
