@@ -7,7 +7,11 @@ export const environment = {
   // plane, it serves no tenant collection, and pointing here at it answers every
   // `/catalog` request with 401 — which reads like a permissions problem and is
   // not one.
-  apiUrl: 'https://acac36.eu-central-1-free-1.restheart.com',
+  // Empty on purpose: the app shows its "configure your service" screen until
+  // you fill this in. A plausible-looking default would be somebody's real
+  // service — six-character ids are real ids, and shipping one in a public repo
+  // points every reader at a stranger's shop.
+  apiUrl: '',
 
   /**
    * Collection names are configured per service
