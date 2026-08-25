@@ -105,10 +105,24 @@ export default function Orders() {
           setConfirming('unfinished');
           return;
         }
+        // A 404 on a reference we merely stashed means the order is gone —
+        // deleted, or from a service that has been reset. The stash is stale,
+        // not broken: forget it and show the page as if it had never been
+        // there. Reporting it made a housekeeping detail look like a failed
+        // purchase, on every visit, for ever.
+        //
+        // Coming back from Stripe it is worth saying: somebody just paid and
+        // the order is not there, which is a real problem and not the buyer's.
+        if (err.status === 404 && !justReturned) {
+          clearPendingOrder();
+          setConfirming('none');
+          return;
+        }
+
         setConfirming('error');
         setConfirmError(
           err.status === 404
-            ? 'That order could not be found. The secret may have expired.'
+            ? 'We cannot find the order you just paid for. Your payment is safe — please contact us with the time of your purchase.'
             : (err.message ?? 'Could not read the order.')
         );
       });
