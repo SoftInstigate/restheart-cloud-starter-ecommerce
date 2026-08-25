@@ -445,7 +445,22 @@ export default defineSetup('Ecommerce', [
     // Without this the acceptance is a 403 and the user is locked out for good:
     // nothing authorises PATCH /users/{userId} out of the box, and a guard
     // never gets a say on a request the ACL already refused.
-    check: ({ service }) => service.permissionExists(PERMISSION_ID),
+    // The versions are compared, not merely the permission's presence. They are
+    // half of a pair: the guard rule demands a version and this permission
+    // stamps one, and a check that only asks "does it exist" leaves the stamp on
+    // the old value when the rule moves to a new one. The user then accepts, is
+    // stamped 2026-07-01, is compared against 2026-08-01, and is blocked for
+    // ever by a form that told them it worked — the exact failure this file's
+    // header warns about, reintroduced by the check meant to prevent it.
+    async check({ service }) {
+      if (!(await service.permissionExists(PERMISSION_ID))) return false;
+      const res = await service.fetch(`/acl/${PERMISSION_ID}`);
+      const doc = (await res.json()) as {
+        mongo?: { mergeRequest?: { latestConsents?: { tos?: string; pp?: string } } };
+      };
+      const stamped = doc.mongo?.mergeRequest?.latestConsents;
+      return stamped?.tos === TOS_VERSION && stamped?.pp === PP_VERSION;
+    },
     apply: ({ service }) =>
       service.putPermission(PERMISSION_ID, {
         predicate:
