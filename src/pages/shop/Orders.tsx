@@ -6,9 +6,9 @@ import {
   formatPrice,
   readOrderRef,
   clearOrderRef,
-  type Order,
 } from '@restheart-cloud/kit-react';
 import { environment } from '../../environments/environment';
+import type { ShopOrder } from '../../shop/types';
 import { clearPendingOrder, readPendingOrder } from '../../shop/pending-order';
 import './Shop.css';
 
@@ -38,10 +38,10 @@ export default function Orders() {
   // The order just paid for, tracked separately from the list: it is the one
   // that may still be moving, and the list is a snapshot.
   const [confirming, setConfirming] = useState<Confirming>('none');
-  const [justPaid, setJustPaid] = useState<Order | null>(null);
+  const [justPaid, setJustPaid] = useState<ShopOrder | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
 
-  const [orders, setOrders] = useState<Order[] | null>(null);
+  const [orders, setOrders] = useState<ShopOrder[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
 
   // ── The order coming back from Stripe ──────────────────────────────────
@@ -109,7 +109,7 @@ export default function Orders() {
     auth
       .api(`/${environment.catalogOrdersCollection}?sort=-_id&pagesize=25`)
       .then(res => res.json())
-      .then((docs: Order[]) => {
+      .then((docs: ShopOrder[]) => {
         if (!cancelled) setOrders(docs);
       })
       .catch((err: { status?: number; message?: string }) => {
@@ -135,8 +135,8 @@ export default function Orders() {
    * here, and the address the customer typed at Stripe is the address the
    * server has.
    */
-  const address = (order: Order) => {
-    const a = (order as unknown as { shipping_address?: Record<string, string> }).shipping_address;
+  const address = (order: ShopOrder) => {
+    const a = order.shipping_address;
     if (!a) return null;
     const lines = [a.name, a.line1, a.line2, [a.postal_code, a.city].filter(Boolean).join(' '),
                    [a.state, a.country].filter(Boolean).join(' ')].filter(Boolean);
@@ -149,7 +149,7 @@ export default function Orders() {
     );
   };
 
-  const line = (order: Order) => (
+  const line = (order: ShopOrder) => (
     <li key={order._id.$oid} className="order-row">
       <div className="order-row-main">
         <span className="order-row-id">{order._id.$oid}</span>

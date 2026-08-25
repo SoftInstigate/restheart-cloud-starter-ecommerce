@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth, formatPrice, type CatalogItem } from '@restheart-cloud/kit-react';
+import { useAuth, formatPrice } from '@restheart-cloud/kit-react';
+import type { ShopItem } from '../../shop/types';
 import { environment } from '../../environments/environment';
 import { useCart } from '../../shop/cart';
 import { CATEGORIES } from '../../catalog.seed';
@@ -26,14 +27,14 @@ export default function Shop() {
     if (addedTimer.current) clearTimeout(addedTimer.current);
   }, []);
 
-  const addToCart = (item: CatalogItem) => {
+  const addToCart = (item: ShopItem) => {
     cart.add(item);
     setJustAdded(item._id);
     if (addedTimer.current) clearTimeout(addedTimer.current);
     addedTimer.current = setTimeout(() => setJustAdded(null), 2500);
   };
 
-  const [items, setItems] = useState<CatalogItem[] | null>(null);
+  const [items, setItems] = useState<ShopItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -115,7 +116,7 @@ export default function Shop() {
     auth
       .api(`/${environment.catalogCollection}?${params}`)
       .then(res => res.json())
-      .then((catalog: CatalogItem[]) => {
+      .then((catalog: ShopItem[]) => {
         if (cancelled) return;
         setItems(prev => (q.page === 1 ? catalog : [...(prev ?? []), ...catalog]));
         // A short page is the end. Asking for a count would be a second

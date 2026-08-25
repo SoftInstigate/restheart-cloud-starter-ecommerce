@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useAuth, formatPrice, type CatalogItem } from '@restheart-cloud/kit-react';
+import { useAuth, formatPrice } from '@restheart-cloud/kit-react';
+import type { ShopItem } from '../../shop/types';
 import { environment } from '../../environments/environment';
 import { useCart } from '../../shop/cart';
 import './Shop.css';
@@ -22,7 +23,7 @@ export default function Product() {
   const auth = useAuth();
   const cart = useCart();
 
-  const [item, setItem] = useState<CatalogItem | null>(null);
+  const [item, setItem] = useState<ShopItem | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
 
@@ -34,7 +35,7 @@ export default function Product() {
     auth
       .api(`/${environment.catalogCollection}/${encodeURIComponent(id)}`)
       .then(res => res.json())
-      .then((doc: CatalogItem) => {
+      .then((doc: ShopItem) => {
         if (!cancelled) setItem(doc);
       })
       .catch((err: { status?: number; message?: string }) => {
