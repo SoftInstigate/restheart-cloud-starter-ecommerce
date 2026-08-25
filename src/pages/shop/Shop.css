@@ -430,3 +430,12 @@
   margin: 0 0 0.75rem;
   font-size: 0.9375rem;
 }
+
+/* Actions under a message. The gap is the point: a button sitting on the last
+   line of a paragraph gets pressed by accident and read as part of the text. */
+.order-resume {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}

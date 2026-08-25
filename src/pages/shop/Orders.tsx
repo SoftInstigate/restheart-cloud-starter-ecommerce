@@ -29,7 +29,7 @@ import './Shop.css';
  * single read would routinely tell someone who just paid that they had not.
  */
 
-type Confirming = 'none' | 'waiting' | 'settled' | 'late' | 'error';
+type Confirming = 'none' | 'waiting' | 'settled' | 'unfinished' | 'error';
 
 export default function Orders() {
   const auth = useAuth();
@@ -61,27 +61,48 @@ export default function Orders() {
     const ref = fromUrl ?? (stashed ? { id: stashed.id, secret: stashed.secret } : null);
     if (!ref) return;
 
+    // Only a reference that came back in the URL means somebody just paid —
+    // that fragment is interpolated into the success URL, which Stripe sends
+    // them to after paying and nowhere else. A stashed one only means a
+    // checkout was opened at some point, and an abandoned cart leaves exactly
+    // the same trace as a completed one.
+    //
+    // Polling both is what produced "Confirming your payment…" and then "Your
+    // payment went through" for a forty-minute-old cart nobody paid for. The
+    // page was asserting an outcome it had not read.
+    const justReturned = fromUrl !== null;
+
     setConfirming('waiting');
     const controller = new AbortController();
 
-    payments
-      .waitForOrder(ref.id, ref.secret, {
-        collection: environment.catalogOrdersCollection,
-        timeoutMs: 30_000,
-        intervalMs: 1_000,
-        signal: controller.signal,
-      })
+    const read = justReturned
+      // Just back from Stripe: the payment is authorised but the order only
+      // moves when the webhook lands, on another connection, seconds later. So
+      // wait for it rather than reporting the state of a race.
+      ? payments.waitForOrder(ref.id, ref.secret, {
+          collection: environment.catalogOrdersCollection,
+          timeoutMs: 30_000,
+          intervalMs: 1_000,
+          signal: controller.signal,
+        })
+      // Otherwise just read it. Whatever it says is the answer.
+      : payments.getOrder(ref.id, ref.secret, environment.catalogOrdersCollection);
+
+    read
       .then(result => {
         setJustPaid(result);
-        setConfirming('settled');
-        clearPendingOrder();
+        setConfirming(result.status === 'pending_payment' ? 'unfinished' : 'settled');
+        // A finished order has nothing left to look up. An unfinished one keeps
+        // its secret: it is what lets the buyer read it back after paying.
+        if (result.status !== 'pending_payment') clearPendingOrder();
       })
       .catch((err: { name?: string; status?: number; message?: string }) => {
         if (controller.signal.aborted) return;
         if (err.name === 'WaitTimeoutError') {
-          // Not a failure: the webhook is late and Stripe has the money either
+          // Only reachable on the just-returned path: the payment is
+          // authorised, the webhook is late, and Stripe has the money either
           // way. Keep the secret so a reload picks up where this left off.
-          setConfirming('late');
+          setConfirming('unfinished');
           return;
         }
         setConfirming('error');
@@ -203,6 +224,12 @@ export default function Orders() {
       </div>
 
       {status.note && <p className="muted order-row-note">{status.note}</p>}
+
+      {order.status === 'pending_payment' && order.checkout_url && (
+        <p className="order-row-note">
+          <a href={order.checkout_url} className="btn-secondary">Finish paying</a>
+        </p>
+      )}
       <ul className="cart-lines cart-lines-compact">
         {order.line_items.map(l => (
           <li key={l.product_id} className="cart-line">
@@ -250,7 +277,23 @@ export default function Orders() {
         </section>
       )}
 
-      {confirming === 'late' && (
+      {confirming === 'unfinished' && justPaid && (
+        <section className="card">
+          <h2>This order is not paid</h2>
+          <p className="muted">
+            You opened Checkout for it and did not finish. Nothing has been charged. The link
+            below is the same Checkout session — it works until the order expires.
+          </p>
+          <div className="order-resume">
+            <a href={justPaid.checkout_url} className="btn-primary">Finish paying</a>
+            <button type="button" className="btn-secondary" onClick={() => window.location.reload()}>
+              Check again
+            </button>
+          </div>
+        </section>
+      )}
+
+      {confirming === 'unfinished' && !justPaid && (
         <section className="card">
           <h2>Payment received — still confirming</h2>
           <div className="success-msg" role="status">
@@ -258,9 +301,11 @@ export default function Orders() {
             normal and usually takes a few more seconds.
           </div>
           <p className="muted">You have not been charged twice.</p>
-          <button type="button" className="btn-primary" onClick={() => window.location.reload()}>
-            Check again
-          </button>
+          <div className="order-resume">
+            <button type="button" className="btn-primary" onClick={() => window.location.reload()}>
+              Check again
+            </button>
+          </div>
         </section>
       )}
 
