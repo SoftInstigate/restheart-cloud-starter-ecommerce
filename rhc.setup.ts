@@ -466,19 +466,6 @@ export default defineSetup('Ecommerce', [
       }),
   }),
 
-  step('customers may open the Stripe billing portal', {
-    // Signed in only: the portal shows the cards and invoices of a Stripe
-    // customer, and a guest checkout has no customer to show. Without this the
-    // menu entry answers 403 — the same shape of failure the catalog had, and
-    // just as easy to read as "the portal is broken".
-    check: ({ service }) => permissionGrants(service, 'stripe-portal', ['user']),
-    apply: ({ service }) =>
-      service.putPermission('stripe-portal', {
-        predicate: "path('/stripe/portal') and method(POST)",
-        roles: ['user'],
-        priority: 100,
-      }),
-  }),
   step('sample catalog, if the shop is empty', {
     /**
      * The only step here that writes **content** rather than configuration, and
