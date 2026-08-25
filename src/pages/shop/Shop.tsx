@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth, usePayments, formatPrice, type CatalogItem } from '@restheart-cloud/kit-react';
+import { usePayments, formatPrice, type CatalogItem } from '@restheart-cloud/kit-react';
 import { environment } from '../../environments/environment';
 import { useCart } from '../../shop/cart';
 import './Shop.css';
@@ -8,7 +8,6 @@ import './Shop.css';
 export default function Shop() {
   const payments = usePayments();
   const cart = useCart();
-  const auth = useAuth();
 
   // Which item was just added, so the button can say so. Cleared on a timer —
   // and the timer is held in a ref so adding a second item restarts it rather
@@ -85,20 +84,12 @@ export default function Shop() {
 
   return (
     <div className="shop-page">
+      {/* Cart and account moved to the site header, which every page has now.
+          This row was the shop improvising one because it had none. */}
       <header className="shop-header">
         <div>
           <p className="eyebrow">Shop</p>
           <h1>Everything we make</h1>
-        </div>
-        <div className="shop-header-actions">
-          {/* The shop is the front door now, so this is the only way in to the
-              account area — there is no other page a visitor passes through. */}
-          {auth.isAuthenticated
-            ? <Link to="/app" className="btn-secondary">My account</Link>
-            : <Link to="/auth/login" className="btn-secondary">Log in</Link>}
-          <Link to="/cart" className="btn-secondary">
-            Cart{cart.totalItems > 0 ? ` (${cart.totalItems})` : ''}
-          </Link>
         </div>
       </header>
 

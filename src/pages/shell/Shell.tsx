@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Outlet, Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@restheart-cloud/kit-react';
 import { isJustSignedUp, setJustSignedUp } from '../../just-signed-up';
+import { useCart } from '../../shop/cart';
 import './Shell.css';
 
 const STORAGE_KEY = 'rh-theme';
@@ -28,8 +29,19 @@ function useTheme() {
   return { dark, toggle };
 }
 
+/**
+ * The shop's frame, for everyone.
+ *
+ * There is no `AuthGuard` around this: a shop whose header only exists once you
+ * log in is a shop that greets strangers with nothing, and the theme switcher —
+ * the one control every visitor wants — was locked behind an account.
+ *
+ * So everything here is written twice over: signed in it shows the avatar menu,
+ * signed out it shows the two links that lead to one.
+ */
 export default function Shell() {
   const auth = useAuth();
+  const cart = useCart();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -112,7 +124,9 @@ export default function Shell() {
   const logout = async () => {
     closeMenu();
     await auth.logout();
-    navigate('/auth/login');
+    // Back to the shop, not to a login form: signing out of a shop is not
+    // leaving it, and everything at `/` is open to a guest anyway.
+    navigate('/');
   };
 
   return (
@@ -128,8 +142,10 @@ export default function Shell() {
           <Link to="/" className="logo">RESTHeart Cloud</Link>
 
           <nav className="nav" aria-label="Main">
-            <NavLink to="/app" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Home</NavLink>
-            <NavLink to="/app/teams" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Teams</NavLink>
+            <NavLink to="/" end className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Shop</NavLink>
+            <NavLink to="/cart" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+              Cart{cart.totalItems > 0 ? ` (${cart.totalItems})` : ''}
+            </NavLink>
           </nav>
 
           <div className="header-actions">
@@ -146,6 +162,14 @@ export default function Shell() {
               )}
             </button>
 
+            {!auth.isAuthenticated && (
+              <>
+                <Link to="/auth/login" className="btn-secondary">Log in</Link>
+                <Link to="/auth/signup" className="btn-primary">Sign up</Link>
+              </>
+            )}
+
+            {auth.isAuthenticated && (
             <div className="user-menu" ref={menuRef}>
               <button
                 ref={avatarBtnRef}
@@ -167,16 +191,18 @@ export default function Shell() {
                       <span className="dropdown-email">{email()}</span>
                     )}
                     {activeTeamName() && (
-                      <span className="dropdown-team">Team: {activeTeamName()}</span>
+                      <span className="dropdown-team">Billing: {activeTeamName()}</span>
                     )}
                   </div>
                   <div className="dropdown-divider"></div>
-                  <Link ref={firstMenuItemRef} to="/app/account" className="dropdown-item" role="menuitem" onClick={closeMenu}>Account</Link>
+                  <Link ref={firstMenuItemRef} to="/account" className="dropdown-item" role="menuitem" onClick={closeMenu}>Account</Link>
+                  <Link to="/billing" className="dropdown-item" role="menuitem" onClick={closeMenu}>Billing account</Link>
                   <div className="dropdown-divider"></div>
                   <button type="button" className="dropdown-item dropdown-item-danger" role="menuitem" onClick={logout}>Logout</button>
                 </div>
               )}
             </div>
+            )}
           </div>
         </header>
 

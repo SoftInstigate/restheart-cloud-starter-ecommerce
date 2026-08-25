@@ -10,10 +10,9 @@ const ForgotPassword = lazy(() => import('./pages/auth/forgot-password/ForgotPas
 const ResetPassword = lazy(() => import('./pages/auth/reset-password/ResetPassword'));
 const Accept = lazy(() => import('./pages/invitations/accept/Accept'));
 const Shell = lazy(() => import('./pages/shell/Shell'));
-const Home = lazy(() => import('./pages/home/Home'));
-const Teams = lazy(() => import('./pages/teams/Teams'));
-const NewTeam = lazy(() => import('./pages/teams/new/NewTeam'));
-const TeamDetail = lazy(() => import('./pages/teams/detail/TeamDetail'));
+const Billing = lazy(() => import('./pages/billing/Billing'));
+const NewBillingAccount = lazy(() => import('./pages/billing/new/NewBillingAccount'));
+const BillingAccount = lazy(() => import('./pages/billing/detail/BillingAccount'));
 const Account = lazy(() => import('./pages/account/Account'));
 const Shop = lazy(() => import('./pages/shop/Shop'));
 const Cart = lazy(() => import('./pages/shop/Cart'));
@@ -124,58 +123,35 @@ export const routes: RouteObject[] = [
   // It sits at `/` rather than under a prefix because that is where people
   // arrive. A shop reachable only by typing a path nobody links to is a shop
   // with no visitors, and the signed-out landing was the login page.
+  // One shell around the whole shop, signed in or not. It used to wrap only the
+  // account area, so a visitor browsing the shop had no header at all and the
+  // shop grew its own row of buttons to make up for it — and "My account" led
+  // to `/app`, a starter showcase page that has nothing to do with a shop.
+  //
+  // Not the auth pages: those are a centred card on an empty page, and a header
+  // above them would be chrome around a form whose whole job is to be the only
+  // thing on screen.
   {
     path: '/',
     element: (
       <SuspenseWrapper>
-        <Shop />
-      </SuspenseWrapper>
-    ),
-  },
-  {
-    path: 'cart',
-    element: (
-      <SuspenseWrapper>
-        <Cart />
-      </SuspenseWrapper>
-    ),
-  },
-  {
-    path: 'checkout',
-    element: (
-      <SuspenseWrapper>
-        <Checkout />
-      </SuspenseWrapper>
-    ),
-  },
-  {
-    // Stripe returns the buyer here. The path must match
-    // `stripeConfig.products.success-url` on the service.
-    path: 'order',
-    element: (
-      <SuspenseWrapper>
-        <OrderReturn />
-      </SuspenseWrapper>
-    ),
-  },
-  // Everything that needs an account lives under `/app`. It used to be at `/`,
-  // which is why a signed-out visitor was bounced to the login page before
-  // seeing anything at all.
-  {
-    path: '/app',
-    element: (
-      <SuspenseWrapper>
-        <AuthGuard>
-          <Shell />
-        </AuthGuard>
+        <Shell />
       </SuspenseWrapper>
     ),
     children: [
-      { index: true, element: <Home /> },
-      { path: 'teams', element: <Teams /> },
-      { path: 'teams/new', element: <NewTeam /> },
-      { path: 'teams/:id', element: <TeamDetail /> },
-      { path: 'account', element: <Account /> },
+      { index: true, element: <Shop /> },
+      { path: 'cart', element: <Cart /> },
+      { path: 'checkout', element: <Checkout /> },
+      // Stripe returns the buyer here. The path must match
+      // `stripeConfig.products.success-url` on the service.
+      { path: 'order', element: <OrderReturn /> },
+
+      // Signed in only. The guard is per-route rather than around the shell,
+      // so a guest keeps the header on every page a guest is allowed to see.
+      { path: 'account', element: <AuthGuard><Account /></AuthGuard> },
+      { path: 'billing', element: <AuthGuard><Billing /></AuthGuard> },
+      { path: 'billing/new', element: <AuthGuard><NewBillingAccount /></AuthGuard> },
+      { path: 'billing/:id', element: <AuthGuard><BillingAccount /></AuthGuard> },
     ],
   },
   // An unknown path used to render the authenticated home with no guard around

@@ -2,9 +2,9 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@restheart-cloud/kit-react';
 import { Alert } from '../../../ui/alert/Alert';
-import './NewTeam.css';
+import './NewBillingAccount.css';
 
-export default function NewTeam() {
+export default function NewBillingAccount() {
   const auth = useAuth();
   const navigate = useNavigate();
 
@@ -20,7 +20,7 @@ export default function NewTeam() {
     setError(null);
     try {
       await auth.createTeam(teamName);
-      navigate('/app/teams');
+      navigate('/billing');
     } catch (err: unknown) {
       setSaving(false);
       const e = err as { message?: string };
@@ -30,7 +30,7 @@ export default function NewTeam() {
 
   return (
     <section className="card">
-      <Link to="/app/teams" className="back-link">&larr; Back to teams</Link>
+      <Link to="/billing" className="back-link">&larr; Back to billing accounts</Link>
       <h2>Create a new team</h2>
 
       {error && <Alert type="error" onClose={() => setError(null)}>{error}</Alert>}

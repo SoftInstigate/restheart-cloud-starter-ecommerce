@@ -3,11 +3,11 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@restheart-cloud/kit-react';
 import type { TeamMembership, TeamMember, PendingInvitation } from '@restheart-cloud/kit-react';
 import { Alert } from '../../../ui/alert/Alert';
-import './TeamDetail.css';
+import './BillingAccount.css';
 
 const RESEND_COOLDOWN_MS = 5 * 60 * 1000;
 
-export default function TeamDetail() {
+export default function BillingAccount() {
   const auth = useAuth();
   const navigate = useNavigate();
   const { id: teamId } = useParams<{ id: string }>();
@@ -108,7 +108,7 @@ export default function TeamDetail() {
       const e = err as { status?: number; message?: string };
       setInviteError(
         e?.status === 409
-          ? 'This person is already a member of your team.'
+          ? 'This person can already charge to this billing account.'
           : (e?.message ?? 'Something went wrong. Please try again.')
       );
     }
@@ -181,11 +181,11 @@ export default function TeamDetail() {
       if (remaining.length > 0 && !remaining.some(t => t.active)) {
         await auth.switchTeam(remaining[0].id);
       }
-      navigate('/app/teams');
+      navigate('/billing');
     } catch (err: unknown) {
       setDeleting(false);
       const e = err as { message?: string };
-      setDeleteError(e?.message ?? 'Could not delete the team.');
+      setDeleteError(e?.message ?? 'Could not delete the billing account.');
     }
   };
 
@@ -197,7 +197,7 @@ export default function TeamDetail() {
   return (
     <>
       <section className="card">
-        <Link to="/app/teams" className="back-link">&larr; Back to teams</Link>
+        <Link to="/billing" className="back-link">&larr; Back to billing accounts</Link>
         <h2>{team?.name || team?.id?.$oid}</h2>
         {team?.description && <p className="muted">{team.description}</p>}
       </section>
@@ -255,7 +255,7 @@ export default function TeamDetail() {
       {isOwner && (
         <>
           <section className="card">
-            <h2>Invite a team member</h2>
+            <h2>Invite someone to share purchases</h2>
             {inviteSent && (
               <Alert type="success" onClose={() => setInviteSent(false)}>Invitation sent!</Alert>
             )}
@@ -329,16 +329,16 @@ export default function TeamDetail() {
           ) : null}
 
           <section className="card">
-            <h2>Team settings</h2>
+            <h2>Billing account settings</h2>
             {teamSaved && (
-              <Alert type="success" onClose={() => setTeamSaved(false)}>Team updated!</Alert>
+              <Alert type="success" onClose={() => setTeamSaved(false)}>Billing account updated!</Alert>
             )}
             {teamError && (
               <Alert type="error" onClose={() => setTeamError(null)}>{teamError}</Alert>
             )}
             <form onSubmit={saveTeam} noValidate className="invite-form">
               <div className="form-field">
-                <label htmlFor="team-name">Team name</label>
+                <label htmlFor="team-name">Account name</label>
                 <input
                   id="team-name"
                   type="text"
@@ -365,11 +365,11 @@ export default function TeamDetail() {
 
             <div className="danger-zone">
               <div className="danger-zone-text">
-                <strong>Delete this team</strong>
+                <strong>Delete this billing account</strong>
                 <p className="muted">Only possible while no other members remain.</p>
               </div>
               {!deleteConfirming ? (
-                <button type="button" className="btn-danger" onClick={() => setDeleteConfirming(true)}>Delete team</button>
+                <button type="button" className="btn-danger" onClick={() => setDeleteConfirming(true)}>Delete account</button>
               ) : (
                 <div className="delete-confirm" role="alertdialog" aria-label="Confirm delete team">
                   <span>Are you sure?</span>
