@@ -48,7 +48,7 @@ export default function Shop() {
           err.status === 404
             ? `No collection "${environment.catalogCollection}" on the service. Check the stripe plugin is enabled and the collection name matches.`
             : err.status === 403
-              ? 'The service ACL does not allow reading the catalog anonymously.'
+              ? 'The service ACL does not allow reading the catalog. Re-run `rhc setup` — the permission has to cover signed-in customers as well as guests.'
               : (err.message ?? 'Could not load the catalog.')
         );
       });

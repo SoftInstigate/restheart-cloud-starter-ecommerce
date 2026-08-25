@@ -20,7 +20,7 @@
  */
 import { defineSetup, step, fromEnv, isRedacted } from '@restheart-cloud/cli';
 import { isApiError } from '@restheart-cloud/cli';
-import type { AdminClient, PluginConfig } from '@restheart-cloud/cli';
+import type { AdminClient, PluginConfig, ServiceClient } from '@restheart-cloud/cli';
 import { environment } from './src/environments/environment.ts';
 
 /** Where this shop is served from, no trailing slash. */
@@ -44,6 +44,22 @@ const features = {
   invitations: f.teamInvitations,
   oauth: f.oauthLogin,
 };
+
+/**
+ * Who the shop is open to.
+ *
+ * Both, and on one permission rather than two. A shop that sells to guests must
+ * not stop selling to the customer who signs in — which is exactly what
+ * `$unauthenticated` alone does: `mongoAclAuthorizer` matches a permission
+ * against the account's roles, so the moment someone logs in and carries
+ * `user`, the guest permission stops applying and every request is a 403. The
+ * shop worked for strangers and broke for customers.
+ *
+ * One document with two roles, not two documents: the authorizer iterates roles
+ * and attaches only the first permission it matches, so two rules for the same
+ * path would make which one applies depend on the order of a user's roles.
+ */
+const SHOPPERS = ['$unauthenticated', 'user'];
 
 /** Must match `catalogCollection` / `ordersCollection` in src/environments. */
 const CATALOG = 'catalog';
@@ -317,6 +333,26 @@ const rules = (config: PluginConfig): unknown[] =>
  * exist — which is exactly what a forced run does, since the apply then runs
  * against a service where the check would have said yes.
  */
+/**
+ * Does this permission exist *and* grant these roles?
+ *
+ * `permissionExists` answers "is there a document with this id", which was true
+ * the whole time the shop was refusing signed-in customers: the permission was
+ * there, it just did not apply to them. A check that cannot see the change it
+ * is guarding makes the step green and the fix invisible, and the only way out
+ * is to remember `--force`.
+ */
+const permissionGrants = async (service: ServiceClient, id: string, roles: string[]) => {
+  try {
+    const res = await service.fetch(`/acl/${encodeURIComponent(id)}`);
+    const current = ((await res.json()) as { roles?: string[] }).roles ?? [];
+    return roles.every(r => current.includes(r));
+  } catch (err) {
+    if (isApiError(err) && err.status === 404) return false;
+    throw err;
+  }
+};
+
 const install = async (admin: AdminClient, srvId: string, pluginId: string) => {
   try {
     await admin.installPlugin(srvId, pluginId);
@@ -387,14 +423,14 @@ export default defineSetup('Ecommerce', [
     apply: ({ admin, srvId }) => admin.initPlugin(srvId, 'stripe', 'products'),
   }),
 
-  step('guests may read the catalog', {
+  step('anyone may read the catalog', {
     // Missing, this shows up as an empty shop with no error — which is why the
     // README had to warn about it in the first place.
-    check: ({ service }) => service.permissionExists('catalog-read-anon'),
+    check: ({ service }) => permissionGrants(service, 'catalog-read-anon', SHOPPERS),
     apply: ({ service }) =>
       service.putPermission('catalog-read-anon', {
         predicate: `(path(/${CATALOG}) or path-template('/${CATALOG}/{docid}')) and method(GET)`,
-        roles: ['$unauthenticated'],
+        roles: SHOPPERS,
         priority: 100,
         // Only what is for sale. A catalog document is public the moment this
         // rule exists, so a draft product must not be readable by omission.
@@ -402,27 +438,27 @@ export default defineSetup('Ecommerce', [
       }),
   }),
 
-  step('guests may place an order', {
-    check: ({ service }) => service.permissionExists('orders-create-anon'),
+  step('anyone may place an order', {
+    check: ({ service }) => permissionGrants(service, 'orders-create-anon', SHOPPERS),
     apply: ({ service }) =>
       service.putPermission('orders-create-anon', {
         // POST only, deliberately: with PATCH a buyer could set their own order
         // to `status: "paid"`.
         predicate: `path(/${ORDERS}) and method(POST)`,
-        roles: ['$unauthenticated'],
+        roles: SHOPPERS,
         priority: 100,
       }),
   }),
 
-  step('guests may read back the order they placed', {
+  step('anyone may read back the order they placed', {
     // The setting the README's table of three does not list. Without it the
     // buyer pays, lands on /order, and is answered 401 by the page whose
     // whole job is to reassure them the money went somewhere.
-    check: ({ service }) => service.permissionExists('orders-read-anon'),
+    check: ({ service }) => permissionGrants(service, 'orders-read-anon', SHOPPERS),
     apply: ({ service }) =>
       service.putPermission('orders-read-anon', {
         predicate: `path-template('/${ORDERS}/{id}') and method(GET)`,
-        roles: ['$unauthenticated'],
+        roles: SHOPPERS,
         priority: 100,
         // The secret createOrder returned is what proves ownership — a guest
         // has no session for the server to recognise them by.
