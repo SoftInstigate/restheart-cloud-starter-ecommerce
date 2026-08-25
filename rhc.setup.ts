@@ -19,7 +19,8 @@
  * needs no secrets in the environment at all.
  */
 import { defineSetup, step, fromEnv, isRedacted } from '@restheart-cloud/cli';
-import type { PluginConfig } from '@restheart-cloud/cli';
+import { isApiError } from '@restheart-cloud/cli';
+import type { AdminClient, PluginConfig } from '@restheart-cloud/cli';
 
 /** Where this shop is served from, no trailing slash. */
 const APP_ORIGIN = process.env.SHOP_ORIGIN ?? 'http://localhost:5173';
@@ -280,10 +281,26 @@ const CLAIMS = ['latestConsents/tos', 'latestConsents/pp'];
 const rules = (config: PluginConfig): unknown[] =>
   (config['rules'] as unknown[] | undefined) ?? [];
 
+/**
+ * Install a plugin, treating "already installed" as the success it is.
+ *
+ * The step's desired state is that the plugin is there. `409 Plugin already
+ * installed` says it is, so failing on it reports a problem that does not
+ * exist — which is exactly what a forced run does, since the apply then runs
+ * against a service where the check would have said yes.
+ */
+const install = async (admin: AdminClient, srvId: string, pluginId: string) => {
+  try {
+    await admin.installPlugin(srvId, pluginId);
+  } catch (err) {
+    if (!isApiError(err) || err.status !== 409) throw err;
+  }
+};
+
 export default defineSetup('Ecommerce', [
   step('stripe plugin installed', {
     check: ({ admin, srvId }) => admin.isPluginInstalled(srvId, 'stripe'),
-    apply: ({ admin, srvId }) => admin.installPlugin(srvId, 'stripe'),
+    apply: ({ admin, srvId }) => install(admin, srvId, 'stripe'),
   }),
 
   step('stripe products mode configured', {
@@ -518,7 +535,7 @@ export default defineSetup('Ecommerce', [
 
   step('guards plugin installed', {
     check: ({ admin, srvId }) => admin.isPluginInstalled(srvId, 'guards'),
-    apply: ({ admin, srvId }) => admin.installPlugin(srvId, 'guards'),
+    apply: ({ admin, srvId }) => install(admin, srvId, 'guards'),
   }),
 
   step('the gate blocks users who have not accepted', {
