@@ -65,12 +65,19 @@ export default function Checkout() {
       window.location.href = order.checkout_url;
     } catch (err) {
       const e = err as { status?: number; message?: string };
+      // A 401 is the one failure this page can explain better than the server:
+      // it means the service does not permit anonymous orders, which is its
+      // ACL's decision and says nothing a buyer could act on.
+      //
+      // Everything else shows what the server said. It used to read "a product
+      // may no longer be purchasable" for any 400 — a guess, presented as a
+      // diagnosis, that sent people to look at the catalogue while the server
+      // was plainly saying something else. When the message is missing there is
+      // still the status, which is at least true.
       setError(
         e.status === 401
           ? 'This service requires an account to order. Please sign in.'
-          : e.status === 400
-            ? 'The server rejected the order — a product may no longer be purchasable.'
-            : (e.message ?? 'Could not start checkout.')
+          : (e.message ?? `Could not start checkout${e.status ? ` (HTTP ${e.status})` : ''}.`)
       );
       setSubmitting(false);
     }
