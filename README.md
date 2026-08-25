@@ -35,7 +35,8 @@ apiUrl: 'https://xxxxxx.eu-central-1-free-1.restheart.com',
 ### 3. Set the service up
 
 This installs the payment plugin, creates the collections, opens the shop to visitors without an
-account, and puts a few demo products in the catalogue.
+account, turns on sign-up, login and password reset, and puts a few demo products in the
+catalogue.
 
 First you need two things from Stripe, both in **test mode** — check the toggle at the top right
 of the Stripe dashboard says *Test mode*.

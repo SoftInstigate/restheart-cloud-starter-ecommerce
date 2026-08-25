@@ -21,9 +21,29 @@
 import { defineSetup, step, fromEnv, isRedacted } from '@restheart-cloud/cli';
 import { isApiError } from '@restheart-cloud/cli';
 import type { AdminClient, PluginConfig } from '@restheart-cloud/cli';
+import { environment } from './src/environments/environment.ts';
 
 /** Where this shop is served from, no trailing slash. */
 const APP_ORIGIN = process.env.SHOP_ORIGIN ?? 'http://localhost:5173';
+
+/** Shown in verification, reset and invitation emails. */
+const APP_NAME = process.env.APP_NAME ?? 'RESTHeart Cloud Shop';
+
+const f = environment.features;
+
+/**
+ * The server's sign-up toggles, derived from the app's.
+ *
+ * `emailRegistration` covers two server flags: from the app's side offering the
+ * form and then not verifying the address is not a mode anyone wants.
+ */
+const features = {
+  registration: f.emailRegistration,
+  verification: f.emailRegistration,
+  'password-reset': f.passwordReset,
+  invitations: f.teamInvitations,
+  oauth: f.oauthLogin,
+};
 
 /** Must match `catalogCollection` / `ordersCollection` in src/environments. */
 const CATALOG = 'catalog';
@@ -41,6 +61,9 @@ const CANCEL_URL = `${origin}/cart`;
 /** A stored secret reads back as bullets; one that was never set reads back blank. */
 const configured = (value: unknown) =>
   isRedacted(value) || (typeof value === 'string' && value.length > 0);
+
+const section = (config: PluginConfig, key: string): PluginConfig =>
+  (config[key] as PluginConfig | undefined) ?? {};
 
 /**
  * The value to write for a secret: the environment variable when it is set,
@@ -441,6 +464,87 @@ export default defineSetup('Ecommerce', [
       }
     },
   }),
+
+  // ── Accounts ───────────────────────────────────────────────────────────
+  // The shop sells to guests, but it also has sign-up, login and password
+  // reset, and every one of those is the `accounts` plugin. Nothing here
+  // installed it, so the console reported it NOT CONFIGURED and the app's
+  // sign-up form posted at a service that had never been told to accept one.
+  //
+  // These come before the consents steps below on purpose: the schema and the
+  // permission are written against the `users` collection this plugin owns.
+
+  step('accounts plugin installed', {
+    check: ({ admin, srvId }) => admin.isPluginInstalled(srvId, 'accounts'),
+    apply: ({ admin, srvId }) => install(admin, srvId, 'accounts'),
+  }),
+
+  step('accounts configured to match the shop', {
+    async check({ admin, srvId }) {
+      const config = await admin.getPluginConfig(srvId, 'accounts');
+      const current = section(config, 'features');
+      return (
+        config['app-name'] === APP_NAME &&
+        config['frontend-url'] === origin &&
+        Object.entries(features).every(([k, v]) => current[k] === v)
+      );
+    },
+    async apply({ admin, srvId }) {
+      const current = await admin.getPluginConfig(srvId, 'accounts');
+      // Read-modify-write with the redaction placeholders passed straight back:
+      // the server replaces the whole document and restores the stored value
+      // for any field still holding one.
+      await admin.updatePluginConfig(srvId, 'accounts', {
+        ...current,
+        'app-name': APP_NAME,
+        // Where the links in verification and reset emails point. Wrong, and
+        // every one of those emails is a dead end — a failure nobody sees
+        // until a real customer hits it.
+        'frontend-url': origin,
+        features: { ...section(current, 'features'), ...features },
+      });
+    },
+  }),
+
+  // Only when the app says it offers Google. A server with the feature on and
+  // no credentials answers the OAuth redirect with an error, which is worse
+  // than not offering the button.
+  ...(f.oauthLogin && (f.oauthProviders as readonly string[]).includes('google')
+    ? [
+        step('google oauth credentials', {
+          async check({ admin, srvId }) {
+            const oauth = section(await admin.getPluginConfig(srvId, 'accounts'), 'oauth');
+            const google = (oauth['google'] as PluginConfig | undefined) ?? {};
+            return (
+              google['enabled'] === true &&
+              configured(google['client-id']) &&
+              configured(google['client-secret'])
+            );
+          },
+          async apply({ admin, srvId }) {
+            const current = await admin.getPluginConfig(srvId, 'accounts');
+            const oauth = section(current, 'oauth');
+            const google = (oauth['google'] as PluginConfig | undefined) ?? {};
+            await admin.updatePluginConfig(srvId, 'accounts', {
+              ...current,
+              oauth: {
+                ...oauth,
+                google: {
+                  ...google,
+                  enabled: true,
+                  'client-id': configured(google['client-id'])
+                    ? google['client-id']
+                    : fromEnv('GOOGLE_CLIENT_ID'),
+                  'client-secret': configured(google['client-secret'])
+                    ? google['client-secret']
+                    : fromEnv('GOOGLE_CLIENT_SECRET'),
+                },
+              },
+            });
+          },
+        }),
+      ]
+    : []),
 
   step('user schema stored', {
     check: ({ service }) => service.schemaExists(SCHEMA_ID),
