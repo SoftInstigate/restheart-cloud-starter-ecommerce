@@ -134,6 +134,9 @@ sent at all.
 [NOTES.md](./NOTES.md) has how the app is put together, the route map, what each part does, and
 the things worth knowing before this becomes a real shop.
 
+[SEO.md](./SEO.md) has how product pages get their own title, price and preview image — what a
+single-page app cannot do on its own, and what this one does about it.
+
 - [RESTHeart Cloud documentation](https://restheart.org/docs/cloud/)
 - [The `rhc` command line](https://restheart.org/docs/cloud/cli)
 - [Stripe on RESTHeart Cloud](https://restheart.org/docs/cloud/stripe)
