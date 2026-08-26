@@ -69,6 +69,14 @@ export function applySeo({ title, description, image, structuredData }: PageSeo)
   // products, which is how a small catalog looks like a large duplicate one.
   link('canonical', window.location.origin + window.location.pathname);
 
+  // The prerendered page already carries structured data for this product, written at build time.
+  // Appending ours next to it leaves two `Product` blocks describing one thing, disagreeing about
+  // the price as soon as the snapshot is a day old — so the stale one goes before ours arrives.
+  // This also covers a block a previous page failed to clean up.
+  document.head
+    .querySelectorAll('script[type="application/ld+json"]')
+    .forEach(tag => tag.remove());
+
   if (!structuredData) return () => {};
 
   const script = document.createElement('script');
