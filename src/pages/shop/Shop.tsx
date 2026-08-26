@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth, formatPrice } from '@restheart-cloud/kit-react';
-import type { ShopItem } from '../../shop/types';
+import { fromPrice, type ShopItem } from '../../shop/types';
 import { environment } from '../../environments/environment';
 import { useCart } from '../../shop/cart';
 import { CATEGORIES } from '../../catalog.seed';
@@ -255,7 +255,7 @@ export default function Shop() {
                 One link around the whole card would have swallowed "Add to
                 cart" — a card you cannot press without navigating. */}
             <Link to={`/product/${encodeURIComponent(item._id)}`} className="shop-item-link">
-              {item.image_url && <img src={item.image_url} alt="" className="shop-item-image" />}
+              {item.images?.[0] && <img src={item.images[0]} alt="" className="shop-item-image" />}
             </Link>
             <div className="shop-item-body">
               <h2 className="shop-item-name">
@@ -264,9 +264,16 @@ export default function Shop() {
               {item.description && <p className="muted shop-item-desc">{item.description}</p>}
               <div className="shop-item-footer">
                 <span className="shop-item-price">
-                  {formatPrice(item.unit_amount, item.currency ?? 'eur')}
+                  {item.variants?.length ? 'from ' : ''}
+                  {formatPrice(fromPrice(item), item.currency ?? 'eur')}
                 </span>
-                {item.purchasable ? (
+                {item.variants?.length ? (
+                  // A product with variants cannot be added from here — the window does not know
+                  // which colour or size, and neither does the buyer yet.
+                  <Link to={`/product/${encodeURIComponent(item._id)}`} className="btn-primary">
+                    Choose
+                  </Link>
+                ) : item.purchasable ? (
                   <button
                     type="button"
                     className={`btn-primary${justAdded === item._id ? ' is-added' : ''}`}
