@@ -30,6 +30,9 @@ export default function Product() {
   /** The option chosen for each metadata key: `{ colour: 'yellow', size: 'L' }`. */
   const [chosen, setChosen] = useState<Record<string, string>>({});
 
+  // A new choice is a new product: "Added ✓" left standing would be claiming the last one.
+  useEffect(() => setAdded(false), [chosen]);
+
   /**
    * The questions and their answers, read off the variants themselves.
    *
@@ -96,8 +99,16 @@ export default function Product() {
     };
   }, [auth, id]);
 
+  /**
+   * A product with variants has no price of its own, and should not: the price belongs to what is
+   * bought. So until a variant is resolved there is nothing to show and nothing to buy — which is
+   * true for one render before the effect below picks a default, and stays true for as long as a
+   * catalog offers a combination that does not exist.
+   */
+  const chooseFirst = Boolean(item?.variants?.length) && !variant;
+
   const add = () => {
-    if (!item) return;
+    if (!item || chooseFirst) return;
     const chosenItem = pick(item, variant);
     // The cart holds what is bought, not the family it belongs to: the composite id is what the
     // server prices and what the order line records.
@@ -131,7 +142,9 @@ export default function Product() {
             <h1>{item.name}</h1>
 
             <p className="product-price">
-              {formatPrice(pick(item, variant).unitAmount, pick(item, variant).currency)}
+              {chooseFirst
+                ? <span className="muted">Select an option</span>
+                : formatPrice(pick(item, variant).unitAmount, pick(item, variant).currency)}
             </p>
 
             {item.description && <p>{item.description}</p>}
@@ -170,7 +183,11 @@ export default function Product() {
               <dd><code>{pick(item, variant).id}</code></dd>
             </dl>
 
-            {pick(item, variant).purchasable ? (
+            {chooseFirst ? (
+              <p className="muted">
+                That combination is not available. Try another one.
+              </p>
+            ) : pick(item, variant).purchasable ? (
               <div className="product-actions">
                 <button type="button" className="btn-primary" onClick={add}>
                   {added ? 'Added ✓' : 'Add to cart'}
