@@ -341,15 +341,32 @@ quello che sta lì dentro gira dopo, nel browser. Google esegue JavaScript e lo 
 delle anteprime dei link — Slack, WhatsApp, X, LinkedIn — no: un link a un prodotto incollato in
 chat mostra quello che dice `index.html`, non il prodotto.
 
-Le tre strade, in ordine di costo:
+### La risposta: una pagina per prodotto, generata alla build
 
-1. **Lasciare così.** Google indicizza, le anteprime social sono generiche. Per molti negozi va
-   bene, e va bene sapendolo.
-2. **Prerendering** delle pagine statiche a build time. Non risolve le schede prodotto, che sono
-   il contenuto che conta.
-3. **SSR.** È l'unica risposta completa, ed è una forma diversa di applicazione: lo starter
-   Angular ce l'ha attraverso il router SSR di Angular, questo è Vite e non ce l'ha. Vite supporta
-   SSR, ma vuole un server da scrivere e da far girare — che è esattamente la cosa che questo
-   starter evita.
+`scripts/prerender.mjs` gira dopo `vite build`, legge il catalogo dal servizio e scrive
+`dist/product/<id>/index.html` per ogni prodotto — la stessa app, con nel `<head>` titolo,
+descrizione, immagine e dati strutturati **di quel prodotto**. Più `sitemap.xml` e `robots.txt`,
+visto che a quel punto la lista dei prodotti è già in mano.
+
+```bash
+SHOP_API_URL=https://xxxxxx.eu-central-1-free-1.restheart.com \
+SHOP_PUBLIC_URL=https://ilmionegozio.com \
+npm run build
+```
+
+Senza quelle due variabili lo script **salta** e lo dice: chi compila senza un servizio deve poter
+compilare lo stesso.
+
+**Sono guscio, non pagine renderizzate.** Renderizzare l'albero React a build time vorrebbe un DOM
+e una seconda strada di rendering da tenere in vita; sostituire l'`<head>` non vuole nessuno dei
+due. Il crawler legge i metadati per cui è venuto, e un browser esegue l'app esattamente come
+prima — il router prende il controllo appena parte il JavaScript, e il corpo che sostituisce è lo
+stesso da cui ogni rotta partiva comunque.
+
+**Quello che resta scoperto è la freschezza.** Sono fotografie: un prezzo cambiato dopo la build
+resta vecchio nella copia del crawler fino alla successiva, e la disponibilità invecchia ancora
+più in fretta. È lo scambio contro l'SSR, ed è un buon scambio per un catalogo che cambia a
+settimana. Per uno che cambia a ore no — e lì la risposta è l'SSR, che lo starter Angular ha
+attraverso il router SSR di Angular e questo, essendo Vite, non ha.
 
 Vale la pena deciderlo di proposito, non scoprirlo quando qualcuno incolla un link.
