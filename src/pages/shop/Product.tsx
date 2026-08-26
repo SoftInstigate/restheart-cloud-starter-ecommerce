@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth, formatPrice } from '@restheart-cloud/kit-react';
-import { pick, type ShopItem, type Variant } from '../../shop/types';
+import { fromPrice, pick, type ShopItem, type Variant } from '../../shop/types';
+import { applySeo, productJsonLd } from '../../seo';
 import { environment } from '../../environments/environment';
 import { useCart } from '../../shop/cart';
 import './Shop.css';
@@ -34,6 +35,8 @@ export default function Product() {
   const [shown, setShown] = useState(0);
 
   const [quantity, setQuantity] = useState(1);
+
+  const [related, setRelated] = useState<ShopItem[]>([]);
 
   // A new choice is a new product: "Added ✓" left standing would be claiming the last one, and
   // the photo of the previous colour would be claiming more than that.
@@ -115,6 +118,54 @@ export default function Product() {
    * catalog offers a combination that does not exist.
    */
   const chooseFirst = Boolean(item?.variants?.length) && !variant;
+
+  /**
+   * Four more from the same category.
+   *
+   * The same category, and nothing cleverer: a starter has no purchase history to learn from, and
+   * a "you might also like" built on nothing is worse than an honest "more in apparel". Fetched
+   * after the product rather than with it, because it must never delay the thing that was asked
+   * for.
+   */
+  useEffect(() => {
+    if (!item?.category) {
+      setRelated([]);
+      return;
+    }
+    let cancelled = false;
+    const filter = JSON.stringify({ category: item.category, _id: { $ne: item._id } });
+    auth
+      .api(`/${environment.catalogCollection}?filter=${encodeURIComponent(filter)}&pagesize=4&sort=name`)
+      .then(res => res.json())
+      .then((docs: ShopItem[]) => {
+        if (!cancelled) setRelated(docs);
+      })
+      // A shelf that fails to load is a shelf that is not there. Nothing to tell anybody.
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [auth, item]);
+
+  // Title, description and the Product structured data that puts a price under a search result.
+  useEffect(() => {
+    if (!item) return;
+    const shown = pick(item, variant);
+    return applySeo({
+      title: item.name,
+      description: item.description,
+      image: shown.images[0],
+      structuredData: productJsonLd({
+        id: shown.id,
+        name: item.name,
+        description: item.description,
+        images: shown.images,
+        price: shown.unitAmount,
+        currency: shown.currency,
+        available: Boolean(shown.purchasable),
+      }),
+    });
+  }, [item, variant]);
 
   const add = () => {
     if (!item || chooseFirst) return;
@@ -241,6 +292,34 @@ export default function Product() {
             )}
           </div>
         </article>
+      )}
+
+      {related.length > 0 && (
+        <section className="product-related">
+          <h2>More in {item?.category}</h2>
+          <div className="shop-grid">
+            {related.map(other => (
+              <article key={other._id} className="card shop-item">
+                <Link to={`/product/${encodeURIComponent(other._id)}`} className="shop-item-link">
+                  {other.images?.[0] && (
+                    <img src={other.images[0]} alt="" className="shop-item-image" />
+                  )}
+                </Link>
+                <div className="shop-item-body">
+                  <h3 className="shop-item-name">
+                    <Link to={`/product/${encodeURIComponent(other._id)}`}>{other.name}</Link>
+                  </h3>
+                  <div className="shop-item-footer">
+                    <span className="shop-item-price">
+                      {other.variants?.length ? 'from ' : ''}
+                      {formatPrice(fromPrice(other), other.currency ?? 'eur')}
+                    </span>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

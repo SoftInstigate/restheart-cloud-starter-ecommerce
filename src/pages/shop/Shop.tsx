@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth, formatPrice } from '@restheart-cloud/kit-react';
 import { fromPrice, type ShopItem } from '../../shop/types';
+import { applySeo } from '../../seo';
 import { environment } from '../../environments/environment';
 import { useCart } from '../../shop/cart';
 import { CATEGORIES } from '../../catalog.seed';
@@ -9,6 +10,42 @@ import './Shop.css';
 
 /** How many products a page holds. Also how the end of the catalog is spotted. */
 const PAGE_SIZE = 24;
+
+/**
+ * Where the reader was, so coming back from a product returns them there.
+ *
+ * `sessionStorage`, not `localStorage`: it is about this visit. Keyed by the filter, because the
+ * position in a list of mugs means nothing in a list of books.
+ *
+ * The pages matter as much as the offset. Restoring a scroll of 4000px onto a freshly loaded
+ * first page lands on nothing — so the count is remembered and asked for in one request, which
+ * is also one round trip instead of four.
+ */
+const WHERE_I_WAS = 'rh-shop-position';
+
+/** The position in a list of mugs means nothing in a list of books. */
+const positionKey = (category: string | null, search: string) => `${category ?? ''}|${search}`;
+
+type Position = { key: string; pages: number; scrollY: number };
+
+function rememberPosition(pos: Position) {
+  try {
+    sessionStorage.setItem(WHERE_I_WAS, JSON.stringify(pos));
+  } catch {
+    // A private window refuses. Losing the position is not worth an error.
+  }
+}
+
+function recallPosition(key: string): Position | null {
+  try {
+    const raw = sessionStorage.getItem(WHERE_I_WAS);
+    if (!raw) return null;
+    const pos = JSON.parse(raw) as Position;
+    return pos.key === key ? pos : null;
+  } catch {
+    return null;
+  }
+}
 
 /** So a customer typing "3.5" does not hand Mongo a regex of their own. */
 const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -68,11 +105,17 @@ export default function Shop() {
    * Held together, a page number cannot be stale with respect to the filter it
    * belongs to: they change in the same update or not at all.
    */
-  const [q, setQ] = useState<{ category: string | null; search: string; page: number }>(() => ({
-    category: params.get('category'),
-    search: params.get('q') ?? '',
-    page: 1,
-  }));
+  const [q, setQ] = useState<{ category: string | null; search: string; page: number }>(() => {
+    const category = params.get('category');
+    const search = params.get('q') ?? '';
+    // Returning to the same list: start at the page the reader had reached, and the first
+    // request below covers everything up to it in one go.
+    const previous = recallPosition(positionKey(category, search));
+    return { category, search, page: previous?.pages ?? 1 };
+  });
+
+  /** True until the first response arrives, which is when a restored scroll can be applied. */
+  const restoring = useRef(q.page > 1);
 
   /** The URL follows the filter, replacing rather than pushing: typing is not navigation. */
   useEffect(() => {
@@ -94,6 +137,31 @@ export default function Shop() {
     }, 300);
     return () => clearTimeout(t);
   }, [query]);
+
+  // Written on every scroll rather than on unmount: leaving happens by clicking a product, and
+  // an unmount handler that runs after the route changed has already lost the offset.
+  useEffect(() => {
+    const remember = () =>
+      rememberPosition({
+        key: positionKey(q.category, q.search),
+        pages: q.page,
+        scrollY: window.scrollY,
+      });
+    window.addEventListener('scroll', remember, { passive: true });
+    return () => {
+      remember();
+      window.removeEventListener('scroll', remember);
+    };
+  }, [q.category, q.search, q.page]);
+
+  useEffect(() => {
+    applySeo({
+      title: q.category ? `${q.category[0]!.toUpperCase()}${q.category.slice(1)}` : 'Shop',
+      description: q.category
+        ? `Everything we make in ${q.category}.`
+        : 'Everything we make — browse the catalogue and buy in a couple of clicks.',
+    });
+  }, [q.category]);
 
   const pickCategory = (next: string | null) =>
     setQ(prev => ({ ...prev, category: prev.category === next ? null : next, page: 1 }));
@@ -137,9 +205,14 @@ export default function Shop() {
     // Z to A and looked deliberate, because any consistent order does. It also
     // makes the paging honest: without a sort, "page 2" is only well defined by
     // luck, and an item can appear on two pages or on none as documents move.
+    // On a restore the first request covers pages 1..N at once — a scroll of four thousand
+    // pixels applied to a freshly loaded first page lands on nothing. Afterwards it is one page
+    // at a time as usual, and `page` N+1 with the normal size is exactly the next slice.
+    const restoreAll = restoring.current && items === null;
+
     const params = new URLSearchParams({
-      page: String(q.page),
-      pagesize: String(PAGE_SIZE),
+      page: restoreAll ? '1' : String(q.page),
+      pagesize: String(restoreAll ? PAGE_SIZE * q.page : PAGE_SIZE),
       sort: 'name',
     });
     if (conditions.length === 1) params.set('filter', JSON.stringify(conditions[0]));
@@ -150,11 +223,18 @@ export default function Shop() {
       .then(res => res.json())
       .then((catalog: ShopItem[]) => {
         if (cancelled) return;
-        setItems(prev => (q.page === 1 ? catalog : [...(prev ?? []), ...catalog]));
+        setItems(prev => (q.page === 1 || restoreAll ? catalog : [...(prev ?? []), ...catalog]));
         // A short page is the end. Asking for a count would be a second
         // round-trip on every scroll to learn what the next page says for free.
-        if (catalog.length < PAGE_SIZE) setDone(true);
+        if (catalog.length < (restoreAll ? PAGE_SIZE * q.page : PAGE_SIZE)) setDone(true);
         setLoadingMore(false);
+
+        if (restoreAll) {
+          restoring.current = false;
+          const previous = recallPosition(positionKey(q.category, q.search));
+          // After paint, or the page is still short and the browser clamps the offset.
+          if (previous) requestAnimationFrame(() => window.scrollTo(0, previous.scrollY));
+        }
       })
       .catch((err: { status?: number; message?: string }) => {
         if (cancelled) return;

@@ -508,3 +508,11 @@
 
 a.cart-line-name { color: inherit; text-decoration: none; }
 a.cart-line-name:hover { text-decoration: underline; }
+
+.product-related {
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.product-related h2 { margin: 0 0 1.5rem; text-transform: capitalize; }

@@ -329,3 +329,27 @@ cart should refuse the mix earlier.
 
 - [`@restheart-cloud/kit`](https://github.com/SoftInstigate/restheart-cloud-kit/tree/main/packages/kit) — TypeScript auth logic (framework-agnostic)
 - [`@restheart-cloud/kit-react`](https://github.com/SoftInstigate/restheart-cloud-kit/tree/main/packages/kit-react) — React context, hooks, and guards
+
+## SEO, e cosa un'app a pagina singola non può fare
+
+`src/seo.ts` imposta per ogni pagina titolo, descrizione, canonical, Open Graph, e sulla scheda
+prodotto i dati strutturati `Product` di schema.org — che sono ciò che mette un prezzo e una
+disponibilità sotto un risultato di ricerca.
+
+**Ma questa è una SPA, e il limite è reale.** L'HTML che il server manda è un guscio vuoto: tutto
+quello che sta lì dentro gira dopo, nel browser. Google esegue JavaScript e lo vede. I crawler
+delle anteprime dei link — Slack, WhatsApp, X, LinkedIn — no: un link a un prodotto incollato in
+chat mostra quello che dice `index.html`, non il prodotto.
+
+Le tre strade, in ordine di costo:
+
+1. **Lasciare così.** Google indicizza, le anteprime social sono generiche. Per molti negozi va
+   bene, e va bene sapendolo.
+2. **Prerendering** delle pagine statiche a build time. Non risolve le schede prodotto, che sono
+   il contenuto che conta.
+3. **SSR.** È l'unica risposta completa, ed è una forma diversa di applicazione: lo starter
+   Angular ce l'ha attraverso il router SSR di Angular, questo è Vite e non ce l'ha. Vite supporta
+   SSR, ma vuole un server da scrivere e da far girare — che è esattamente la cosa che questo
+   starter evita.
+
+Vale la pena deciderlo di proposito, non scoprirlo quando qualcuno incolla un link.
