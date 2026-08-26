@@ -27,6 +27,8 @@ export interface CartLine {
    * identical lines — which is a cart nobody can check before paying.
    */
   options?: Record<string, string>;
+  /** So the cart shows what is in it. A list of names is a receipt, not a cart. */
+  image?: string;
   unitAmount: number;
   currency: string;
 }
@@ -37,7 +39,7 @@ interface Cart {
   /** Display only. Minor units, and only meaningful if every line shares a currency. */
   subtotal: number;
   currency: string;
-  add(item: CatalogItem, quantity?: number, options?: Record<string, string>): void;
+  add(item: CatalogItem, quantity?: number, options?: Record<string, string>, images?: string[]): void;
   setQuantity(productId: string, quantity: number): void;
   remove(productId: string): void;
   clear(): void;
@@ -71,7 +73,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const add = useCallback(
-    (item: CatalogItem, quantity = 1, options?: Record<string, string>) => {
+    (item: CatalogItem, quantity = 1, options?: Record<string, string>, images?: string[]) => {
       setLines(prev => {
         const existing = prev.find(l => l.productId === item._id);
         const next = existing
@@ -83,6 +85,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 quantity,
                 name: item.name,
                 ...(options && Object.keys(options).length > 0 ? { options } : {}),
+                ...(images?.[0] ? { image: images[0] } : {}),
                 unitAmount: item.unit_amount,
                 currency: item.currency ?? 'eur',
               },

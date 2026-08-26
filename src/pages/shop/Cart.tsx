@@ -78,8 +78,15 @@ export default function Cart() {
       <ul className="cart-lines">
         {cart.lines.map(line => (
           <li key={line.productId} className="cart-line">
+            {line.image && <img src={line.image} alt="" className="cart-line-image" />}
+
             <div className="cart-line-main">
-              <span className="cart-line-name">{line.name}</span>
+              {/* Back to what was bought, not to the family: a cart is also where people go to
+                  change their mind about a size. */}
+              <Link to={`/product/${encodeURIComponent(line.productId.split('/')[0]!)}`}
+                    className="cart-line-name">
+                {line.name}
+              </Link>
               {line.options && (
                 <span className="cart-line-options">
                   {Object.values(line.options).join(' · ')}
@@ -139,9 +146,17 @@ export default function Cart() {
       <div className="form-row cart-actions">
         <Link to="/" className="btn-secondary">Keep shopping</Link>
         <button type="button" className="btn-primary" onClick={checkout} disabled={starting}>
-          {starting ? 'Starting…' : 'Checkout'}
+          {starting ? 'Starting…' : 'Pay with Stripe'}
         </button>
       </div>
+
+      {/* Said before the click, not discovered after it. A button that silently moves someone to
+          a domain they did not expect is where people abandon a cart — and "card details never
+          reach this shop" is the reassurance that answers the worry it raises. */}
+      <p className="muted cart-note">
+        You will be taken to Stripe to pay. Your card details never reach this shop, and you can
+        come back if you change your mind.
+      </p>
     </div>
   );
 }

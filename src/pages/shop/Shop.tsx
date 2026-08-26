@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth, formatPrice } from '@restheart-cloud/kit-react';
 import { fromPrice, type ShopItem } from '../../shop/types';
 import { environment } from '../../environments/environment';
@@ -28,7 +28,7 @@ export default function Shop() {
   }, []);
 
   const addToCart = (item: ShopItem) => {
-    cart.add(item);
+    cart.add(item, 1, undefined, item.images);
     setJustAdded(item._id);
     if (addedTimer.current) clearTimeout(addedTimer.current);
     addedTimer.current = setTimeout(() => setJustAdded(null), 2500);
@@ -40,7 +40,19 @@ export default function Shop() {
   const [loadingMore, setLoadingMore] = useState(false);
   const sentinel = useRef<HTMLDivElement | null>(null);
 
-  const [query, setQuery] = useState('');
+  /**
+   * The filter lives in the URL, not in a hook.
+   *
+   * Three things fall out of that and none of them are available otherwise: the back button works
+   * after opening a product — the shop reappears filtered as it was, instead of resetting to
+   * everything — a filtered window can be sent to somebody, and a reload does not throw the
+   * choice away.
+   *
+   * The page number deliberately stays in state. It is a consequence of scrolling rather than a
+   * choice, and an address bar that changes as you scroll is noise in the history.
+   */
+  const [params, setParams] = useSearchParams();
+  const [query, setQuery] = useState(params.get('q') ?? '');
 
   /**
    * What is being asked for, in one piece.
@@ -56,11 +68,21 @@ export default function Shop() {
    * Held together, a page number cannot be stale with respect to the filter it
    * belongs to: they change in the same update or not at all.
    */
-  const [q, setQ] = useState<{ category: string | null; search: string; page: number }>({
-    category: null,
-    search: '',
+  const [q, setQ] = useState<{ category: string | null; search: string; page: number }>(() => ({
+    category: params.get('category'),
+    search: params.get('q') ?? '',
     page: 1,
-  });
+  }));
+
+  /** The URL follows the filter, replacing rather than pushing: typing is not navigation. */
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (q.category) next.set('category', q.category);
+    if (q.search) next.set('q', q.search);
+    if (next.toString() !== params.toString()) {
+      setParams(next, { replace: true });
+    }
+  }, [q.category, q.search, params, setParams]);
 
   // Typing is not a query. Waiting a moment turns a word into one request
   // instead of one per keystroke, and the catalog is on the other side of a

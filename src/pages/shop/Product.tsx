@@ -30,8 +30,17 @@ export default function Product() {
   /** The option chosen for each metadata key: `{ colour: 'yellow', size: 'L' }`. */
   const [chosen, setChosen] = useState<Record<string, string>>({});
 
-  // A new choice is a new product: "Added ✓" left standing would be claiming the last one.
-  useEffect(() => setAdded(false), [chosen]);
+  /** Which of the product's photos is showing. Reset whenever the set of photos changes. */
+  const [shown, setShown] = useState(0);
+
+  const [quantity, setQuantity] = useState(1);
+
+  // A new choice is a new product: "Added ✓" left standing would be claiming the last one, and
+  // the photo of the previous colour would be claiming more than that.
+  useEffect(() => {
+    setAdded(false);
+    setShown(0);
+  }, [chosen]);
 
   /**
    * The questions and their answers, read off the variants themselves.
@@ -112,7 +121,8 @@ export default function Product() {
     const chosenItem = pick(item, variant);
     // The cart holds what is bought, not the family it belongs to: the composite id is what the
     // server prices and what the order line records.
-    cart.add({ ...item, _id: chosenItem.id, unit_amount: chosenItem.unitAmount }, 1, chosen);
+    cart.add({ ...item, _id: chosenItem.id, unit_amount: chosenItem.unitAmount },
+      quantity, chosen, chosenItem.images);
     setAdded(true);
   };
 
@@ -131,11 +141,32 @@ export default function Product() {
 
       {item && (
         <article className="product-layout">
-          {pick(item, variant).images[0] ? (
-            <img src={pick(item, variant).images[0]} alt="" className="product-image" />
-          ) : (
-            <div className="product-image placeholder" aria-hidden="true" />
-          )}
+          <div>
+            {pick(item, variant).images[shown] ? (
+              <img src={pick(item, variant).images[shown]} alt="" className="product-image" />
+            ) : (
+              <div className="product-image placeholder" aria-hidden="true" />
+            )}
+
+            {/* Only when there is a choice to make. A single thumbnail under a single photo is
+                furniture pretending to be a control. */}
+            {pick(item, variant).images.length > 1 && (
+              <div className="product-thumbs">
+                {pick(item, variant).images.map((src, i) => (
+                  <button
+                    key={src}
+                    type="button"
+                    className={`product-thumb${i === shown ? ' is-shown' : ''}`}
+                    aria-label={`Photo ${i + 1}`}
+                    aria-pressed={i === shown}
+                    onClick={() => setShown(i)}
+                  >
+                    <img src={src} alt="" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="product-detail">
             {item.category && <p className="eyebrow">{String(item.category)}</p>}
@@ -189,6 +220,15 @@ export default function Product() {
               </p>
             ) : pick(item, variant).purchasable ? (
               <div className="product-actions">
+                <label className="sr-only" htmlFor="product-qty">Quantity</label>
+                <input
+                  id="product-qty"
+                  className="product-qty"
+                  type="number"
+                  min={1}
+                  value={quantity}
+                  onChange={e => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+                />
                 <button type="button" className="btn-primary" onClick={add}>
                   {added ? 'Added ✓' : 'Add to cart'}
                 </button>

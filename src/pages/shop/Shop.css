@@ -468,3 +468,43 @@
   color: var(--color-text-muted);
   text-transform: capitalize;
 }
+
+/* Product gallery. */
+.product-thumbs {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.product-thumb {
+  width: 4.5rem;
+  height: 4.5rem;
+  padding: 0;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: none;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.product-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Which one is showing, by border rather than by opacity: a dimmed thumbnail reads as
+   unavailable, which is what a struck-through option means two boxes below. */
+.product-thumb.is-shown { border-color: currentColor; border-width: 2px; }
+
+.product-qty { width: 4.5rem; }
+
+/* The thing itself, in the cart. */
+.cart-line-image {
+  width: 3.5rem;
+  height: 3.5rem;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+  flex: 0 0 auto;
+}
+
+a.cart-line-name { color: inherit; text-decoration: none; }
+a.cart-line-name:hover { text-decoration: underline; }
