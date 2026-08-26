@@ -5,29 +5,27 @@ that it is a single-page app.
 
 ## What sets the metadata
 
-`src/seo.ts` has two functions:
+`src/seo.ts` has two functions, and every page calls at least the first:
 
-- `applySeo()` — title, description, canonical and Open Graph tags for a page. Every page calls it.
-- `productJsonLd()` — schema.org `Product` structured data for a product page. This is what puts a
-  price and a stock status under a Google result.
+- `applySeo()` — title, description, canonical and Open Graph tags.
+- `productJsonLd()` — schema.org `Product` data on a product page. This is what puts a price and a
+  stock status under a Google result.
 
-Both write into the live document, which is enough for Google — it runs JavaScript — and not
-enough for anything else. Read on.
+Both write into the live document. That is enough for Google, which renders JavaScript, and not
+enough for anything else.
 
-## The problem a SPA has
+## Why that is not enough
 
-The HTML the server sends is an empty shell. Everything real happens afterwards, in the browser.
+The HTML the server sends is an empty shell; everything real happens afterwards in the browser.
+**Link preview crawlers do not run JavaScript** — Slack, WhatsApp, X, LinkedIn, iMessage read the
+HTML as delivered and stop. A product link pasted into a chat shows the shop's generic title, for
+every product.
 
-Google renders JavaScript and sees the finished page. **Link preview crawlers do not** — Slack,
-WhatsApp, X, LinkedIn, iMessage read the HTML as delivered and stop. A product link pasted into a
-chat shows whatever `index.html` says, which is the shop's generic title, for every product.
+## One file per product
 
-## The answer: one file per product
-
-`scripts/prerender.mjs` runs after `vite build`. It reads the catalogue from the service and
-writes `dist/product/<id>/index.html` for every product: the same app, with that product's title,
-description, image and structured data already in the `<head>`. It also writes `sitemap.xml` and
-`robots.txt`, since by then it has the list of URLs anyway.
+`scripts/prerender.mjs` runs after `vite build`. It reads the catalogue from the service and writes
+`dist/product/<id>/index.html` per product — the same app, with that product's title, description,
+image and structured data already in the `<head>` — plus `sitemap.xml` and `robots.txt`.
 
 ```bash
 SHOP_API_URL=https://xxxxxx.eu-central-1-free-1.restheart.com \
@@ -35,47 +33,31 @@ SHOP_PUBLIC_URL=https://ilmionegozio.com \
 npm run build
 ```
 
-Without those two variables the script **skips itself and says so** — building without a service
-has to keep working.
+Without those two variables the script skips itself and says so, so building without a service
+keeps working.
 
-### Everyone gets the same file
+Everyone gets the same file: a crawler reads the `<head>` and stops, a browser runs the app and
+replaces the body with live data. Serving crawlers something different from users is cloaking and
+against Google's rules; this is not that.
 
-This is worth being precise about, because it sounds like two different sites and is not.
-
-`GET /product/mug-enamel` returns `dist/product/mug-enamel/index.html` to whoever asked.
-
-- A **crawler** reads the `<head>`, finds that product's metadata, and for link previews stops there.
-- A **browser** loads the same file, the JS starts, the router sees `/product/mug-enamel`, and the
-  page fetches live data — price, stock, variants. The body is replaced.
-
-Same bytes, prefilled `<head>`, body taken over by the app. Serving crawlers something different
-from users is cloaking and is against Google's rules; this is not that.
-
-The sitemap delivers nothing. It is a list telling crawlers which URLs exist.
-
-### They are shells, not rendered pages
-
-Rendering the React tree at build time would need a DOM and a second rendering path to maintain.
-Substituting the `<head>` needs neither. The crawler gets the metadata it came for, and the
-browser runs the app exactly as before.
+> **This is one of three known ways.** [react-snap](https://github.com/stereobooster/react-snap)
+> renders the real DOM with headless Chrome, and [Vike](https://vike.dev/pre-rendering) makes
+> pre-rendering a property of the app. Both produce fully rendered HTML, and both are a bigger
+> change than this: a script that only substitutes the `<head>` needs no browser at build time and
+> leaves the app untouched. Swap it if you want the body rendered too.
 
 ## Keeping them fresh
 
-The prerendered `<head>` is a snapshot. A price that changes after the build stays wrong in the
-crawler's copy until the next one.
+The prerendered `<head>` is a snapshot, and a price that changes after the build stays wrong in
+the crawler's copy until the next run. **No customer sees that** — a human gets the SPA, which
+asks the service and shows the price current to the second.
 
-**Nobody's customer sees that.** A human gets the SPA, which asks the service and shows the price
-current to the second. The stale copy is only ever read by a crawler.
+So the bar is "not months old", not "correct now", and a crawler revisits a small shop daily or
+weekly. Once a day is plenty, plus a manual run after a change worth announcing.
 
-So the bar is not "correct now", it is "not months old" — and a crawler revisits a small shop
-daily or weekly. **Once a day covers it**, plus a manual run after a price change worth
-announcing.
-
-### Refreshing without a rebuild
-
-The script reads one thing out of `dist`: `index.html`. That file changes when the *app* changes,
-not when a price does. So `SHOP_SHELL=remote` takes it from the deployed site instead, and a
-scheduled refresh needs no `npm install` and no `vite build`:
+The script reads one thing out of `dist`: `index.html`, which changes when the *app* changes and
+not when a price does. `SHOP_SHELL=remote` takes it from the deployed site instead, so a scheduled
+refresh needs no `npm install` and no `vite build`:
 
 ```bash
 SHOP_SHELL=remote \
@@ -84,111 +66,65 @@ SHOP_PUBLIC_URL=https://ilmionegozio.com \
 node scripts/prerender.mjs
 ```
 
-A few seconds, then upload `dist/product/` and `sitemap.xml`.
+A few seconds, then upload `dist/product/` and `sitemap.xml`. On Netlify or Vercel, a cron on the
+build hook does the whole thing.
 
-On a host with scheduled builds (Netlify, Vercel) a cron on the build hook does it. On S3 or
-similar, a cron job that runs the above and syncs the two paths.
+## On S3 and CloudFront
 
-## A worked example: S3 and CloudFront
+S3 is the one host where the pieces have to be put there deliberately.
 
-Netlify and Vercel need no explanation — a build hook on a cron, and they already serve a real
-file before falling back. S3 is the one where every piece has to be put there deliberately, so
-here it is end to end.
-
-### Serving the pages
-
-The prerender writes `product/<id>/index.html`, but the canonical URL it puts in the page and in
-the sitemap is `/product/<id>` — no trailing slash. Those have to be the same URL, so the request
-for the extensionless path must serve that file **without redirecting**.
-
-The plain S3 website endpoint will not do it: it answers `/product/mug-enamel` with a 302 to
-`/product/mug-enamel/`, and now the address that gets crawled is not the address the page declares
-as canonical. Use CloudFront with a private bucket (OAC) and a **CloudFront Function** on
-viewer-request:
+**Serve the extensionless URL.** The canonical URL is `/product/<id>` with no trailing slash, but
+the file is at `product/<id>/index.html`. Use CloudFront with
+[AWS's `url-rewrite-single-page-apps` function](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/example-function-add-index.html)
+on viewer-request, unchanged:
 
 ```js
-function handler(event) {
-  var request = event.request;
-  var uri = request.uri;
+async function handler(event) {
+    var request = event.request;
+    var uri = request.uri;
 
-  // "/product/mug-enamel" -> the file that was generated for it.
-  if (uri.charAt(uri.length - 1) === '/') request.uri = uri + 'index.html';
-  else if (uri.lastIndexOf('.') <= uri.lastIndexOf('/')) request.uri = uri + '/index.html';
+    // Check whether the URI is missing a file name.
+    if (uri.endsWith('/')) {
+        request.uri += 'index.html';
+    }
+    // Check whether the URI is missing a file extension.
+    else if (!uri.includes('.')) {
+        request.uri += '/index.html';
+    }
 
-  return request;
+    return request;
 }
 ```
 
-Then add the SPA fallback as **custom error responses**: 403 and 404 → `/index.html`, response
-code 200. Order matters and comes out right on its own — the function rewrites first, so a real
-generated file is found and served, and the fallback only fires for paths that genuinely have no
-file, which is exactly what client-side routing needs.
+The plain S3 website endpoint is not a substitute: it answers `/product/mug-enamel` with a 302 to
+the trailing-slash form, so the crawled address stops matching the declared canonical.
 
-Get this backwards — no function, just the error-response fallback — and every product URL 404s at
-the origin and comes back as the generic shell. **The shop keeps working**, so nothing tells you.
-That is the case the `curl` below is for.
+**Add the client-side routes.** `/cart` and `/orders` have no generated file, so after the rewrite
+they 404. Custom error responses — 403 and 404 → `/index.html`, response code 200 — hand those to
+the router. Neither AWS document covers this; it is the piece you configure yourself.
 
-### Publishing
-
-Two passes, because the two kinds of file want opposite caching:
+**Set Cache-Control, and skip invalidations.** [AWS's tiered-TTL guidance](https://aws.amazon.com/blogs/networking-and-content-delivery/host-single-page-applications-spa-with-tiered-ttls-on-cloudfront-and-s3/)
+is to make the HTML refresh itself rather than to invalidate after every deploy — invalidations
+cost money, do not touch the browser's own cache, and are a control-plane operation:
 
 ```bash
-BUCKET=my-shop
-DISTRIBUTION=E1234567890ABC
-
-# Hashed asset filenames: cache forever.
 aws s3 sync dist/ s3://$BUCKET/ --delete \
   --exclude "*.html" --exclude "sitemap.xml" --exclude "robots.txt" \
   --cache-control "public,max-age=31536000,immutable"
 
-# The pages: short, or a refresh is invisible until the TTL expires.
 aws s3 sync dist/ s3://$BUCKET/ --delete \
   --exclude "*" --include "*.html" --include "sitemap.xml" --include "robots.txt" \
-  --cache-control "public,max-age=300"
+  --cache-control "public,max-age=60,stale-while-revalidate=2592000"
 ```
 
-### The daily refresh
+With those headers the scheduled refresh needs no invalidation: upload `dist/product/` and
+`sitemap.xml` and CloudFront picks them up. Keep `--delete` scoped to `product/` on that run —
+a refresh runs without a build, so `dist/` holds nothing else.
 
-This is the standalone run — no build, so `dist/` holds **only** the prerender's output:
+## Check the pages are actually served
 
-```bash
-#!/bin/sh
-set -e
-
-export SHOP_SHELL=remote
-export SHOP_API_URL=https://xxxxxx.eu-central-1-free-1.restheart.com
-export SHOP_PUBLIC_URL=https://ilmionegozio.com
-
-node scripts/prerender.mjs
-
-aws s3 sync dist/product/ s3://$BUCKET/product/ --delete \
-  --cache-control "public,max-age=300"
-aws s3 cp dist/sitemap.xml s3://$BUCKET/sitemap.xml --cache-control "public,max-age=300"
-
-aws cloudfront create-invalidation --distribution-id $DISTRIBUTION \
-  --paths "/product/*" "/sitemap.xml"
-```
-
-Two things in there are load-bearing:
-
-**`--delete` is scoped to `product/`.** Pointing it at the bucket root from this `dist` would
-delete the entire application — the JavaScript, the CSS, `index.html` — because a run without a
-build never wrote them. The publishing script above and this one are not interchangeable.
-
-**The invalidation.** Without it CloudFront keeps serving the copy it cached, and the refresh
-reaches nobody until the TTL runs out. `/product/*` counts as one path, and the first 1,000 a
-month are free.
-
-Put it on a schedule that suits the catalogue — daily is plenty, for the reasons above.
-
-## Check it actually reaches the browser
-
-Most SPA hosts have a catch-all rewrite — *anything → /index.html* — so client-side routing works
-on a refresh. **If that rule wins, the generated files are never served**, and nothing looks
-broken: users see the same working shop, and only the previews stay generic.
-
-Netlify and Vercel try the real file before the fallback, so they are fine. A hand-rolled S3 or
-nginx configuration may not be.
+If a catch-all rewrite wins over the generated files, nothing looks broken: users see the same
+working shop and only the previews stay generic.
 
 ```bash
 curl -s https://ilmionegozio.com/product/mug-enamel | grep '<title>'
