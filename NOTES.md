@@ -369,4 +369,30 @@ più in fretta. È lo scambio contro l'SSR, ed è un buon scambio per un catalog
 settimana. Per uno che cambia a ore no — e lì la risposta è l'SSR, che lo starter Angular ha
 attraverso il router SSR di Angular e questo, essendo Vite, non ha.
 
+### Rigenerarle senza ricompilare
+
+Lo script legge dal `dist` solo `index.html`, e quel file cambia quando cambia l'**app**, non
+quando cambia un prezzo. Quindi un aggiornamento periodico non ha bisogno di `npm install` né di
+`vite build`: con `SHOP_SHELL=remote` il guscio viene preso dal sito già pubblicato.
+
+```bash
+SHOP_SHELL=remote \
+SHOP_API_URL=https://xxxxxx.eu-central-1-free-1.restheart.com \
+SHOP_PUBLIC_URL=https://ilmionegozio.com \
+node scripts/prerender.mjs      # pochi secondi, poi si caricano i file cambiati
+```
+
+Su un host con build programmate (Netlify, Vercel) basta un cron sul build hook. Su S3 o simili, un
+job che esegue questo e sincronizza `dist/product/` e `sitemap.xml`.
+
+**Ogni quanto, però.** La tentazione è "ogni cinque minuti". Non serve, per una ragione che vale la
+pena avere chiara: **questi metadati li legge solo un crawler.** Un essere umano riceve la stessa
+SPA di sempre, che il prezzo lo chiede al servizio e lo mostra aggiornato al secondo. La copia
+stantia non la vede nessun cliente.
+
+E un crawler ripassa su un negozio piccolo ogni giorno o ogni settimana, non ogni cinque minuti:
+rigenerare più spesso di così è lavoro che nessuno legge. L'asticella non è "corretto adesso", è
+"non vecchio di mesi". Una volta al giorno copre tutto, e dopo un cambio di listino si lancia a
+mano.
+
 Vale la pena deciderlo di proposito, non scoprirlo quando qualcuno incolla un link.

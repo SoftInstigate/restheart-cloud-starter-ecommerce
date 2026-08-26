@@ -101,7 +101,20 @@ function head(item, url) {
   ].filter(Boolean).join('\n    ');
 }
 
-const shell = await readFile(join(DIST, 'index.html'), 'utf8');
+/**
+ * The page these are built from.
+ *
+ * Normally the freshly built `dist/index.html`. With `SHOP_SHELL=remote` it is fetched from the
+ * deployed site instead, which is what lets this run on a schedule without building anything: the
+ * shell changes when the app changes, and refreshing prices does not change the app.
+ */
+const shell =
+  process.env.SHOP_SHELL === 'remote'
+    ? await fetch(`${SITE}/index.html`).then(res => {
+        if (!res.ok) throw new Error(`GET ${SITE}/index.html answered ${res.status}`);
+        return res.text();
+      })
+    : await readFile(join(DIST, 'index.html'), 'utf8');
 const items = await catalog();
 
 for (const item of items) {
