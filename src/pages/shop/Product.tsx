@@ -101,7 +101,7 @@ export default function Product() {
     const chosenItem = pick(item, variant);
     // The cart holds what is bought, not the family it belongs to: the composite id is what the
     // server prices and what the order line records.
-    cart.add({ ...item, _id: chosenItem.id, unit_amount: chosenItem.unitAmount }, 1);
+    cart.add({ ...item, _id: chosenItem.id, unit_amount: chosenItem.unitAmount }, 1, chosen);
     setAdded(true);
   };
 

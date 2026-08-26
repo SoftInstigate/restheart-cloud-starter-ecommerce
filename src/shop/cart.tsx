@@ -14,10 +14,19 @@ import type { CatalogItem } from '@restheart-cloud/kit-react';
 const STORAGE_KEY = 'rh-cart';
 
 export interface CartLine {
+  /** `tee-classic` for a plain product, `tee-classic/yellow-l` for a variant. */
   productId: string;
   quantity: number;
   /** Display only — the server prices the order from its own catalog. */
   name: string;
+  /**
+   * What was chosen, for a variant: `{ colour: 'yellow', size: 'L' }`.
+   *
+   * The name is the product's and stays the product's, because two variants of one thing are
+   * called the same thing. Without this a cart holding a yellow L and a blue M shows two
+   * identical lines — which is a cart nobody can check before paying.
+   */
+  options?: Record<string, string>;
   unitAmount: number;
   currency: string;
 }
@@ -28,7 +37,7 @@ interface Cart {
   /** Display only. Minor units, and only meaningful if every line shares a currency. */
   subtotal: number;
   currency: string;
-  add(item: CatalogItem, quantity?: number): void;
+  add(item: CatalogItem, quantity?: number, options?: Record<string, string>): void;
   setQuantity(productId: string, quantity: number): void;
   remove(productId: string): void;
   clear(): void;
@@ -62,7 +71,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const add = useCallback(
-    (item: CatalogItem, quantity = 1) => {
+    (item: CatalogItem, quantity = 1, options?: Record<string, string>) => {
       setLines(prev => {
         const existing = prev.find(l => l.productId === item._id);
         const next = existing
@@ -73,6 +82,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 productId: item._id,
                 quantity,
                 name: item.name,
+                ...(options && Object.keys(options).length > 0 ? { options } : {}),
                 unitAmount: item.unit_amount,
                 currency: item.currency ?? 'eur',
               },

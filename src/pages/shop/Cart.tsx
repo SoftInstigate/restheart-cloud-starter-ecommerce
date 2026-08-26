@@ -80,6 +80,11 @@ export default function Cart() {
           <li key={line.productId} className="cart-line">
             <div className="cart-line-main">
               <span className="cart-line-name">{line.name}</span>
+              {line.options && (
+                <span className="cart-line-options">
+                  {Object.values(line.options).join(' · ')}
+                </span>
+              )}
               <span className="muted">{formatPrice(line.unitAmount, line.currency)} each</span>
             </div>
 

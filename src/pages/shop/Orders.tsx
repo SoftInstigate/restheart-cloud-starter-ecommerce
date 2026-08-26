@@ -245,12 +245,22 @@ export default function Orders() {
         </p>
       )}
       <ul className="cart-lines cart-lines-compact">
-        {order.line_items.map(l => (
-          <li key={l.product_id} className="cart-line">
-            <span className="cart-line-main">{l.quantity} × {l.name}</span>
-            <span className="cart-line-total">{formatPrice(l.subtotal, order.currency)}</span>
-          </li>
-        ))}
+        {order.line_items.map(l => {
+          // Whatever the buyer chose, straight off the line the server wrote. Not read, not
+          // interpreted — the keys belong to whoever built the shop.
+          const options = (l as unknown as { metadata?: Record<string, string> }).metadata;
+          return (
+            <li key={l.product_id} className="cart-line">
+              <span className="cart-line-main">
+                {l.quantity} × {l.name}
+                {options && Object.keys(options).length > 0 && (
+                  <span className="cart-line-options">{Object.values(options).join(' · ')}</span>
+                )}
+              </span>
+              <span className="cart-line-total">{formatPrice(l.subtotal, order.currency)}</span>
+            </li>
+          );
+        })}
       </ul>
       <div className="cart-summary">
         <span>Total</span>

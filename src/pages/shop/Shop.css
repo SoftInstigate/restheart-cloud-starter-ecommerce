@@ -459,3 +459,12 @@
   cursor: not-allowed;
   text-decoration: line-through;
 }
+
+/* What was chosen, under the product name: "yellow · L". Two lines of the same
+   product are otherwise indistinguishable in a cart or on an order. */
+.cart-line-options {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  text-transform: capitalize;
+}
