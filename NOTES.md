@@ -338,8 +338,10 @@ has one left, `jar-of-last-monday` is for sale with none, and the enamel mug cou
 
 ### Not covered
 
-- **Restocking** — `in_stock` goes down when an order is paid and nothing puts it back. A real
-  shop needs a way in, whether that is the console or a page of its own.
+- **Restocking** — `in_stock` goes down when an order is paid and nothing puts it back up. That is
+  on purpose, not a gap: the count is a field in a Mongo collection like any other, so restocking
+  is done from the RESTHeart Cloud console today, and the planned back-office screens will take it
+  over. The shop has no page for it because the shop is not where it belongs.
 - **Shipping** — Stripe collects the address on its own page, for the countries named in
   `products.shipping-address-countries`; the webhook writes it onto the order. **Tax** — left to
   Stripe's Checkout configuration.
