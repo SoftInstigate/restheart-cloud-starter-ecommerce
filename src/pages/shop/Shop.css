@@ -389,6 +389,16 @@
 .product-facts dt { color: var(--color-text-muted); }
 .product-facts dd { margin: 0; }
 
+/* Scarcity, stated once and quietly. A shop that shouts "only 2 left!" on every
+   tile teaches people to stop believing it, which is worse than not saying it —
+   so this appears on the product page alone, and only under five. */
+.product-stock {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-error);
+}
+
 .product-actions {
   display: flex;
   flex-wrap: wrap;

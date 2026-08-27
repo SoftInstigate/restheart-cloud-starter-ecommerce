@@ -316,9 +316,30 @@ labels them with the first line's currency. A catalog that mixes currencies woul
 meaningless total. Stripe would reject the session anyway, so the failure is loud — but the
 cart should refuse the mix earlier.
 
+### Stock is optimistic, and can be oversold
+
+`in_stock` lives on the product, or on the variant when there is one, and it is optional: a product
+without it is one nobody counts, which is what most of a small catalogue wants. The shop refuses to
+add what reads zero and clamps the quantity box to what is left.
+
+**Nothing is reserved.** A cart holds no claim: the units come off when the payment lands, in one
+atomic update per line. Two people can buy the last one, both payments succeed, and the order that
+pushed the count below zero is marked `oversold: true`. The shop refunds it from the Stripe
+dashboard, which comes back as `charge.refunded` and is already handled.
+
+That is a trade, not an oversight. Reserving means an endpoint, a server-issued token, a per-cart
+cap, a rate limit, expiry arithmetic, and a cart that stops being client-side — for the case where
+two people want the last unit within the same half hour. Overselling costs a fee and an apologetic
+email and is paid rarely; the complexity would be paid always. What the atomic decrement buys is
+that the case is *visible*: `oversold` is in the order schema, and there is a warning in the log.
+
+The seed carries the cases worth seeing: `pocket-thundercloud` has one left, the yellow L T-shirt
+has one left, `jar-of-last-monday` is for sale with none, and the enamel mug counts nothing at all.
+
 ### Not covered
 
-- **Inventory** — the plugin has an inventory collection; this example ignores stock entirely.
+- **Restocking** — `in_stock` goes down when an order is paid and nothing puts it back. A real
+  shop needs a way in, whether that is the console or a page of its own.
 - **Shipping** — Stripe collects the address on its own page, for the countries named in
   `products.shipping-address-countries`; the webhook writes it onto the order. **Tax** — left to
   Stripe's Checkout configuration.

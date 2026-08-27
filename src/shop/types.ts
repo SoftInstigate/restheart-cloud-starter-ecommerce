@@ -15,6 +15,7 @@ export type Variant = {
   unit_amount?: number;
   currency?: string;
   purchasable?: boolean;
+  in_stock?: number;
   images?: string[];
   metadata?: Record<string, string>;
 };
@@ -30,6 +31,8 @@ export type ShopItem = Omit<CatalogItem, 'image_url'> & {
   category?: string;
   images?: string[];
   metadata?: Record<string, string>;
+  /** Units on hand. Absent means the shop does not count this one — see `stock()`. */
+  in_stock?: number;
   variants?: Variant[];
 };
 
@@ -40,9 +43,32 @@ export function pick(item: ShopItem, variant?: Variant) {
     unitAmount: variant?.unit_amount ?? item.unit_amount,
     currency: variant?.currency ?? item.currency ?? 'eur',
     purchasable: variant?.purchasable ?? item.purchasable,
+    inStock: variant?.in_stock ?? item.in_stock,
     // Replaced, not merged: a gallery mixing every colour is worse than either.
     images: (variant?.images?.length ? variant.images : item.images) ?? [],
     metadata: variant?.metadata ?? item.metadata ?? {},
+  };
+}
+
+/**
+ * Whether this can be put in a cart, and how many of it.
+ *
+ * Two fields say no for different reasons and both have to be asked. `purchasable: false` is the
+ * shop's decision — not for sale, whatever the shelf holds. `in_stock: 0` is the shelf's. An
+ * absent `in_stock` is neither: it means nobody is counting, which is the right default for most
+ * of what a small shop sells.
+ *
+ * The server applies exactly this rule when it prices an order, so a button this function enables
+ * is a button the checkout will honour — up to the moment someone else takes the last one.
+ */
+export function stock(chosen: ReturnType<typeof pick>) {
+  const counted = typeof chosen.inStock === 'number';
+  return {
+    sellable: chosen.purchasable !== false && (!counted || chosen.inStock! > 0),
+    /** How many the buyer may ask for, or `undefined` when uncounted. */
+    limit: counted ? Math.max(0, chosen.inStock!) : undefined,
+    /** Worth telling the buyer about. Below this it is a reason to decide now. */
+    low: counted && chosen.inStock! > 0 && chosen.inStock! <= 5,
   };
 }
 

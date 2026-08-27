@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth, formatPrice } from '@restheart-cloud/kit-react';
-import { fromPrice, pick, type ShopItem, type Variant } from '../../shop/types';
+import { fromPrice, pick, stock, type ShopItem, type Variant } from '../../shop/types';
 import { applySeo, productJsonLd } from '../../seo';
 import { environment } from '../../environments/environment';
 import { useCart } from '../../shop/cart';
@@ -162,7 +162,7 @@ export default function Product() {
         images: shown.images,
         price: shown.unitAmount,
         currency: shown.currency,
-        available: Boolean(shown.purchasable),
+        available: stock(shown).sellable,
       }),
     });
   }, [item, variant]);
@@ -239,7 +239,7 @@ export default function Product() {
                     // Shown and disabled rather than hidden: options that appear and vanish while
                     // you choose are harder to use than a greyed-out size.
                     const sellable = item.variants?.some(
-                      v => v.metadata?.[key] === value && v.purchasable !== false
+                      v => v.metadata?.[key] === value && stock(pick(item, v)).sellable
                     );
                     return (
                       <button
@@ -265,11 +265,17 @@ export default function Product() {
               <dd><code>{pick(item, variant).id}</code></dd>
             </dl>
 
+            {stock(pick(item, variant)).low && !chooseFirst && (
+              <p className="product-stock" role="status">
+                Only {stock(pick(item, variant)).limit} left.
+              </p>
+            )}
+
             {chooseFirst ? (
               <p className="muted">
                 That combination is not available. Try another one.
               </p>
-            ) : pick(item, variant).purchasable ? (
+            ) : stock(pick(item, variant)).sellable ? (
               <div className="product-actions">
                 <label className="sr-only" htmlFor="product-qty">Quantity</label>
                 <input
@@ -277,8 +283,14 @@ export default function Product() {
                   className="product-qty"
                   type="number"
                   min={1}
+                  max={stock(pick(item, variant)).limit}
                   value={quantity}
-                  onChange={e => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+                  onChange={e => {
+                    // Clamped to the shelf where there is one. The checkout would refuse a larger
+                    // number anyway, and refusing it here costs the buyer nothing.
+                    const limit = stock(pick(item, variant)).limit ?? Infinity;
+                    setQuantity(Math.min(limit, Math.max(1, Number(e.target.value) || 1)));
+                  }}
                 />
                 <button type="button" className="btn-primary" onClick={add}>
                   {added ? 'Added ✓' : 'Add to cart'}

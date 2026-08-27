@@ -429,7 +429,24 @@ export default defineSetup('Ecommerce', [
         priority: 100,
         // Only what is for sale. A catalog document is public the moment this
         // rule exists, so a draft product must not be readable by omission.
-        mongo: { readFilter: { purchasable: true } },
+        //
+        // Two shapes qualify, and the filter used to know only one. A product
+        // with variants carries no top-level `purchasable` — the flag is on
+        // each variant, because that is where the decision belongs — so
+        // `{ purchasable: true }` alone hid every one of them, and the shop
+        // showed a catalogue with the T-shirts silently missing.
+        //
+        // `$ne: false` rather than `true` on the variant, because the server
+        // reads an omitted `purchasable` as yes: a filter stricter than the
+        // rule the checkout applies hides things it would happily sell.
+        mongo: {
+          readFilter: {
+            $or: [
+              { purchasable: true },
+              { variants: { $elemMatch: { purchasable: { $ne: false } } } },
+            ],
+          },
+        },
       }),
   }),
 

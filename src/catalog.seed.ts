@@ -12,6 +12,12 @@
  *
  * Three are `purchasable: false` on purpose — the shop has to filter on that
  * flag rather than show whatever the collection happens to hold.
+ *
+ * A handful carry `in_stock`, and most do not. That asymmetry is the point: an
+ * absent count means nobody is counting, which is what a small shop wants for
+ * almost everything it sells. The few that do carry one cover the cases worth
+ * seeing — a shelf at zero, a shelf at one, and a variant counted separately
+ * from its siblings.
  */
 
 /** Cents. Named so a price is never mistaken for a currency amount. */
@@ -57,6 +63,9 @@ export const DEMO_PRODUCTS = [
           // field beside the metadata, never one of them.
           unit_amount: money(size === 'XL' ? 2900 : 2500),
           purchasable: !(colour === 'black' && size === 'S'),
+          // Counted per variant, because a shelf is per article: yellow L is down to its last
+          // one, which is what makes two tabs buying it at once something you can watch happen.
+          in_stock: colour === 'yellow' && size === 'L' ? 1 : 20,
           images: [`https://placehold.co/600x600/${COLOURS[colour]}/ffffff?text=${colour}`],
           metadata: {
             colour,
@@ -79,6 +88,8 @@ export const DEMO_PRODUCTS = [
       ...(['cream', 'green'] as const).flatMap(colour =>
         (['350ml', '500ml'] as const).map(size => ({
           id: `${colour}-${size}`,
+          // No `in_stock` anywhere on this one: a product with variants and no count has to keep
+          // working, and it is the half that breaks when the counted path gets all the attention.
           unit_amount: money(size === '500ml' ? 1800 : 1450),
           purchasable: true,
           images: [`https://placehold.co/600x600/${COLOURS[colour]}/ffffff?text=${colour}`],
@@ -103,6 +114,8 @@ export const DEMO_PRODUCTS = [
     unit_amount: money(3400),
     currency: 'eur',
     purchasable: true,
+    // The plain-product twin of the yellow L: last one, no variants involved.
+    in_stock: 1,
   },
   {
     _id: 'jar-of-last-monday',
@@ -113,7 +126,10 @@ export const DEMO_PRODUCTS = [
     images: ['https://placehold.co/600x600/7c3aed/ffffff?text=Jar+of+last+Monday'],
     unit_amount: money(900),
     currency: 'eur',
+    // For sale, and none left — which is a different thing from `purchasable: false`, and reads
+    // the same to a buyer. Both have to reach the same "Sold out", from opposite directions.
     purchasable: true,
+    in_stock: 0,
   },
   {
     _id: 'left-handed-compass',

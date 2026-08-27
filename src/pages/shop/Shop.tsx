@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth, formatPrice } from '@restheart-cloud/kit-react';
-import { fromPrice, type ShopItem } from '../../shop/types';
+import { fromPrice, pick, stock, type ShopItem } from '../../shop/types';
 import { applySeo } from '../../seo';
 import { environment } from '../../environments/environment';
 import { useCart } from '../../shop/cart';
@@ -375,7 +375,7 @@ export default function Shop() {
                   <Link to={`/product/${encodeURIComponent(item._id)}`} className="btn-primary">
                     Choose
                   </Link>
-                ) : item.purchasable ? (
+                ) : stock(pick(item)).sellable ? (
                   <button
                     type="button"
                     className={`btn-primary${justAdded === item._id ? ' is-added' : ''}`}
