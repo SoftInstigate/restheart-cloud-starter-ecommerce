@@ -32,7 +32,11 @@ export default function Cart() {
     setError(null);
     setStarting(true);
 
-    const items = cart.lines.map(l => ({ productId: l.productId, quantity: l.quantity }));
+    // Built by the cart, not here: the lines carry the options that were chosen,
+    // and a hand-rolled `{ productId, quantity }` drops them — which is how the
+    // seller ends up with an order that says "Classic T-shirt" and never says
+    // which one.
+    const items = cart.orderItems;
 
     try {
       // No email, even for a guest: Stripe collects one on its own page and the
@@ -45,7 +49,11 @@ export default function Cart() {
       // guest, who has no session to identify them.
       rememberPendingOrder(order._id.$oid, order.secret);
 
-      cart.clear();
+      // The cart stays. Emptying it here loses it for everyone who reaches
+      // Stripe and changes their mind — and Stripe's own cancel link brings
+      // them back to this page, which would greet them with "Nothing in it
+      // yet." after they had just built a basket. It is cleared on the orders
+      // page, once an order actually reads `paid`.
       window.location.href = order.checkout_url;
     } catch (err) {
       const e = err as { status?: number; message?: string };

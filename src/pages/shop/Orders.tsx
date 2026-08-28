@@ -10,6 +10,7 @@ import {
 import { environment } from '../../environments/environment';
 import type { ShopOrder } from '../../shop/types';
 import { clearPendingOrder, readPendingOrder } from '../../shop/pending-order';
+import { useCart } from '../../shop/cart';
 import './Shop.css';
 
 /**
@@ -34,6 +35,7 @@ type Confirming = 'none' | 'waiting' | 'settled' | 'unfinished' | 'error';
 export default function Orders() {
   const auth = useAuth();
   const payments = usePayments();
+  const cart = useCart();
 
   // The order just paid for, tracked separately from the list: it is the one
   // that may still be moving, and the list is a snapshot.
@@ -95,6 +97,12 @@ export default function Orders() {
         // A finished order has nothing left to look up. An unfinished one keeps
         // its secret: it is what lets the buyer read it back after paying.
         if (result.status !== 'pending_payment') clearPendingOrder();
+        // Emptying the cart belongs here and not at checkout, because this is
+        // the first moment the goods are actually sold. Someone who reached
+        // Stripe and turned back still has their basket; someone who paid does
+        // not get to buy it twice. Only `paid` — an expired or cancelled order
+        // leaves the cart alone, so they can try again.
+        if (result.status === 'paid') cart.clear();
       })
       .catch((err: { name?: string; status?: number; message?: string }) => {
         if (controller.signal.aborted) return;

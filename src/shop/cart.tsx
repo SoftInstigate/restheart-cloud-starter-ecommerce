@@ -39,6 +39,20 @@ interface Cart {
   /** Display only. Minor units, and only meaningful if every line shares a currency. */
   subtotal: number;
   currency: string;
+  /**
+   * The cart as `createOrder` wants it.
+   *
+   * The chosen options travel as the line's `metadata`: they are the one thing
+   * here the service cannot work out for itself. A reference like
+   * `tee-classic/yellow-l` says which row of the catalog was bought, but the
+   * seller reading the order wants "yellow, L" in fields rather than decoded
+   * out of an id — and without this the order, the Stripe dashboard and the
+   * confirmation email all say "Classic T-shirt" and never say which one.
+   *
+   * Same shape as `toOrderItems` in `@restheart-cloud/kit`, which is where this
+   * whole file goes once that release is out.
+   */
+  orderItems: { productId: string; quantity: number; metadata?: Record<string, string> }[];
   add(item: CatalogItem, quantity?: number, options?: Record<string, string>, images?: string[]): void;
   setQuantity(productId: string, quantity: number): void;
   remove(productId: string): void;
@@ -120,6 +134,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       totalItems: lines.reduce((n, l) => n + l.quantity, 0),
       subtotal: lines.reduce((n, l) => n + l.unitAmount * l.quantity, 0),
       currency: lines[0]?.currency ?? 'eur',
+      orderItems: lines.map(({ productId, quantity, options }) => ({
+        productId,
+        quantity,
+        ...(options && Object.keys(options).length > 0 ? { metadata: options } : {}),
+      })),
       add,
       setQuantity,
       remove,
