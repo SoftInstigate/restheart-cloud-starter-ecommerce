@@ -82,6 +82,11 @@ rhc login
 rhc setup --srv <srvId>
 ```
 
+`rhc login` asks for a **personal access token**, which you create first: in
+[cloud.restheart.com](https://cloud.restheart.com), open your profile and issue one. It is not
+your account password — the CLI has no way to accept one. A token carries the `cli` role rather
+than yours, so it configures services and cannot buy one, and revoking it touches nothing else.
+
 `<srvId>` is the six characters at the start of your service URL.
 
 You only need the Stripe keys the first time. After that the service keeps them, and re-running
