@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useAuth, formatPrice } from '@restheart-cloud/kit-react';
+import { formatPrice, usePayments } from '@restheart-cloud/kit-react';
 import { fromPrice, pick, stock, type ShopItem } from '../../shop/types';
 import { applySeo } from '../../seo';
 import { environment } from '../../environments/environment';
@@ -51,7 +51,7 @@ function recallPosition(key: string): Position | null {
 const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export default function Shop() {
-  const auth = useAuth();
+  const payments = usePayments();
   const cart = useCart();
 
   // Which item was just added, so the button can say so. Cleared on a timer —
@@ -169,14 +169,13 @@ export default function Shop() {
   /**
    * The catalog, filtered and a page at a time.
    *
-   * Through `auth.api` rather than `payments.getCatalog`, which takes a page
-   * and a size but no filter — and filtering in the browser would search only
-   * what happens to be loaded, which for a paged list is a search that quietly
-   * lies. `api` attaches the session when there is one and nothing when there
-   * is not, so this is the same call for a guest and a customer.
+   * `payments.getCatalog` builds the request: it attaches the session when
+   * there is one and nothing when there is not, so this is the same call for a
+   * guest and a customer, and the query parameters stop being this page's
+   * spelling problem.
    *
    * What comes back is still the ACL's decision: the permission carries a
-   * readFilter on `purchasable`, so unsellable products never reach the client
+   * readFilter, so products that are not for sale never reach the client
    * whatever this asks for.
    */
   useEffect(() => {
@@ -210,17 +209,16 @@ export default function Shop() {
     // at a time as usual, and `page` N+1 with the normal size is exactly the next slice.
     const restoreAll = restoring.current && items === null;
 
-    const params = new URLSearchParams({
-      page: restoreAll ? '1' : String(q.page),
-      pagesize: String(restoreAll ? PAGE_SIZE * q.page : PAGE_SIZE),
-      sort: 'name',
-    });
-    if (conditions.length === 1) params.set('filter', JSON.stringify(conditions[0]));
-    if (conditions.length > 1) params.set('filter', JSON.stringify({ $and: conditions }));
-
-    auth
-      .api(`/${environment.catalogCollection}?${params}`)
-      .then(res => res.json())
+    payments
+      .getCatalog({
+        collection: environment.catalogCollection,
+        page: restoreAll ? 1 : q.page,
+        pagesize: restoreAll ? PAGE_SIZE * q.page : PAGE_SIZE,
+        sort: 'name',
+        ...(conditions.length === 1 ? { filter: conditions[0] } : {}),
+        ...(conditions.length > 1 ? { filter: { $and: conditions } } : {}),
+      })
+      .then(catalog => catalog as ShopItem[])
       .then((catalog: ShopItem[]) => {
         if (cancelled) return;
         setItems(prev => (q.page === 1 || restoreAll ? catalog : [...(prev ?? []), ...catalog]));
@@ -254,7 +252,7 @@ export default function Shop() {
     return () => {
       cancelled = true;
     };
-  }, [auth, q]);
+  }, [payments, q]);
 
   // The sentinel sits under the grid; when it comes into view there is another
   // page to ask for. `rootMargin` starts the request a screen early, so the

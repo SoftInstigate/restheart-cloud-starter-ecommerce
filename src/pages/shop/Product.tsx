@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useAuth, formatPrice } from '@restheart-cloud/kit-react';
+import { formatPrice, usePayments } from '@restheart-cloud/kit-react';
 import { fromPrice, pick, stock, type ShopItem, type Variant } from '../../shop/types';
 import { applySeo, productJsonLd } from '../../seo';
 import { environment } from '../../environments/environment';
@@ -21,7 +21,7 @@ import './Shop.css';
  */
 export default function Product() {
   const { id = '' } = useParams();
-  const auth = useAuth();
+  const payments = usePayments();
   const cart = useCart();
 
   const [item, setItem] = useState<ShopItem | null>(null);
@@ -91,25 +91,33 @@ export default function Product() {
     setItem(null);
     setError(null);
 
-    auth
-      .api(`/${environment.catalogCollection}/${encodeURIComponent(id)}`)
-      .then(res => res.json())
-      .then((doc: ShopItem) => {
-        if (!cancelled) setItem(doc);
+    // One product, asked for as a catalog of one.
+    //
+    // The kit reads the catalog as a list, and there is no separate call for a
+    // single document — which turns out to suit a shop. Fetching `/catalog/{id}`
+    // tells a withdrawn product apart from a hidden one, by answering 404 or
+    // 403, and a shopper should be told the same thing either way: this is not
+    // for sale. An empty list says exactly that and nothing more.
+    payments
+      .getCatalog({
+        collection: environment.catalogCollection,
+        filter: { _id: id },
+        pagesize: 1,
       })
-      .catch((err: { status?: number; message?: string }) => {
+      .then(docs => {
         if (cancelled) return;
-        setError(
-          err.status === 404
-            ? 'That product is not in the catalog. It may have been withdrawn.'
-            : (err.message ?? 'Could not load the product.')
-        );
+        const doc = (docs as ShopItem[])[0];
+        if (doc) setItem(doc);
+        else setError('That product is not in the catalog. It may have been withdrawn.');
+      })
+      .catch((err: { message?: string }) => {
+        if (!cancelled) setError(err.message ?? 'Could not load the product.');
       });
 
     return () => {
       cancelled = true;
     };
-  }, [auth, id]);
+  }, [payments, id]);
 
   /**
    * A product with variants has no price of its own, and should not: the price belongs to what is
@@ -133,19 +141,22 @@ export default function Product() {
       return;
     }
     let cancelled = false;
-    const filter = JSON.stringify({ category: item.category, _id: { $ne: item._id } });
-    auth
-      .api(`/${environment.catalogCollection}?filter=${encodeURIComponent(filter)}&pagesize=4&sort=name`)
-      .then(res => res.json())
-      .then((docs: ShopItem[]) => {
-        if (!cancelled) setRelated(docs);
+    payments
+      .getCatalog({
+        collection: environment.catalogCollection,
+        filter: { category: item.category, _id: { $ne: item._id } },
+        pagesize: 4,
+        sort: 'name',
+      })
+      .then(docs => {
+        if (!cancelled) setRelated(docs as ShopItem[]);
       })
       // A shelf that fails to load is a shelf that is not there. Nothing to tell anybody.
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [auth, item]);
+  }, [payments, item]);
 
   // Title, description and the Product structured data that puts a price under a search result.
   useEffect(() => {
