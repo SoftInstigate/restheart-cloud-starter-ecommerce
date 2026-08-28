@@ -7,6 +7,8 @@ login, password reset and teams.
 It is a React app plus a [RESTHeart Cloud](https://cloud.restheart.com) service. There is no
 server of yours to write, deploy or pay for.
 
+![The shop, with the demo catalogue](./starter-shop.png)
+
 ## Get it running
 
 **You need:** [Node.js](https://nodejs.org) 18 or later, a free RESTHeart Cloud service, and a
