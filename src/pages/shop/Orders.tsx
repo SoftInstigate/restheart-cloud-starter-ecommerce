@@ -96,7 +96,7 @@ export default function Orders() {
         setConfirming(result.status === 'pending_payment' ? 'unfinished' : 'settled');
         // A finished order has nothing left to look up. An unfinished one keeps
         // its secret: it is what lets the buyer read it back after paying.
-        if (result.status !== 'pending_payment') clearPendingOrder();
+        if (result.status !== 'pending_payment') clearPendingOrder(ref.id);
         // Emptying the cart belongs here and not at checkout, because this is
         // the first moment the goods are actually sold. Someone who reached
         // Stripe and turned back still has their basket; someone who paid does
@@ -122,7 +122,7 @@ export default function Orders() {
         // Coming back from Stripe it is worth saying: somebody just paid and
         // the order is not there, which is a real problem and not the buyer's.
         if (err.status === 404 && !justReturned) {
-          clearPendingOrder();
+          clearPendingOrder(ref.id);
           setConfirming('none');
           return;
         }
