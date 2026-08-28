@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   useAuth,
@@ -6,6 +6,7 @@ import {
   formatPrice,
   readOrderRef,
   clearOrderRef,
+  type OrderRef,
 } from '@restheart-cloud/kit-react';
 import { environment } from '../../environments/environment';
 import type { ShopOrder } from '../../shop/types';
@@ -46,13 +47,30 @@ export default function Orders() {
   const [orders, setOrders] = useState<ShopOrder[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
 
+  /**
+   * The reference Stripe sent them back with, read once.
+   *
+   * Read here rather than inside the effect because reading it is destructive:
+   * the effect strips it from the address bar, and StrictMode runs effects
+   * twice in development — so the second run found an empty URL, decided
+   * nobody had just paid, and fell back to the stash. That fallback used to
+   * hold one order and happened to be the right one; once it held a list it
+   * answered with the most recent, which after two checkouts is the other
+   * tab's, and a buyer who had just paid was told their order was unpaid.
+   *
+   * `undefined` means not read yet — `null` is a real answer, and means the
+   * page was opened rather than returned to.
+   */
+  const returnedRef = useRef<OrderRef | null | undefined>(undefined);
+  if (returnedRef.current === undefined) returnedRef.current = readOrderRef();
+
   // ── The order coming back from Stripe ──────────────────────────────────
   useEffect(() => {
     // Two ways the reference arrives, in order of preference: interpolated into
     // the success URL by the service and carried back by Stripe — which
     // survives a cleared localStorage and a different browser — or what we
     // stashed before redirecting.
-    const fromUrl = readOrderRef();
+    const fromUrl = returnedRef.current;
     if (fromUrl) {
       // Out of the address bar immediately: the secret is a credential, and a
       // URL gets screenshotted, shared and bookmarked.
