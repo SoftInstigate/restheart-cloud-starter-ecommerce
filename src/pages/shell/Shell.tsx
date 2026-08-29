@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Outlet, Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@restheart-cloud/kit-react';
+import { useAuth, useCart } from '@restheart-cloud/kit-react';
 import { isJustSignedUp, setJustSignedUp } from '../../just-signed-up';
 import { usePayments } from '@restheart-cloud/kit-react';
-import { useCart } from '../../shop/cart';
 import './Shell.css';
 
 const STORAGE_KEY = 'rh-theme';

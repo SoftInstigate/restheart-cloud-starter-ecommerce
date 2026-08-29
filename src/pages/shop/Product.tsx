@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { formatPrice, usePayments } from '@restheart-cloud/kit-react';
+import { formatPrice, useCart, usePayments } from '@restheart-cloud/kit-react';
 import { fromPrice, pick, stock, type ShopItem, type Variant } from '../../shop/types';
 import { applySeo, productJsonLd } from '../../seo';
 import { environment } from '../../environments/environment';
-import { useCart } from '../../shop/cart';
 import './Shop.css';
 
 /**
@@ -182,9 +181,19 @@ export default function Product() {
     if (!item || chooseFirst) return;
     const chosenItem = pick(item, variant);
     // The cart holds what is bought, not the family it belongs to: the composite id is what the
-    // server prices and what the order line records.
-    cart.add({ ...item, _id: chosenItem.id, unit_amount: chosenItem.unitAmount },
-      quantity, chosen, chosenItem.images);
+    // server prices and what the order line records. The options travel with it, because a
+    // variant's name is its product's and two of them would otherwise read alike.
+    cart.add(
+      {
+        productId: chosenItem.id,
+        name: item.name,
+        unitAmount: chosenItem.unitAmount,
+        currency: chosenItem.currency,
+        ...(Object.keys(chosen).length > 0 ? { options: chosen } : {}),
+        ...(chosenItem.images[0] ? { image: chosenItem.images[0] } : {}),
+      },
+      quantity
+    );
     setAdded(true);
   };
 

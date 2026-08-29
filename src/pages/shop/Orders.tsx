@@ -1,17 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  useAuth,
-  usePayments,
-  formatPrice,
-  readOrderRef,
-  clearOrderRef,
-  type OrderRef,
-} from '@restheart-cloud/kit-react';
+import { clearOrderRef, formatPrice, readOrderRef, type OrderRef, useAuth, useCart, usePayments } from '@restheart-cloud/kit-react';
 import { environment } from '../../environments/environment';
 import type { ShopOrder } from '../../shop/types';
 import { clearPendingOrder, readPendingOrder } from '../../shop/pending-order';
-import { useCart } from '../../shop/cart';
 import './Shop.css';
 
 /**

@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { formatPrice, usePayments } from '@restheart-cloud/kit-react';
+import { formatPrice, useCart, usePayments } from '@restheart-cloud/kit-react';
 import { fromPrice, pick, stock, type ShopItem } from '../../shop/types';
 import { applySeo } from '../../seo';
 import { environment } from '../../environments/environment';
-import { useCart } from '../../shop/cart';
 import { CATEGORIES } from '../../catalog.seed';
 import './Shop.css';
 
@@ -65,7 +64,13 @@ export default function Shop() {
   }, []);
 
   const addToCart = (item: ShopItem) => {
-    cart.add(item, 1, undefined, item.images);
+    cart.add({
+      productId: item._id,
+      name: item.name,
+      unitAmount: item.unit_amount,
+      currency: item.currency ?? 'eur',
+      ...(item.images?.[0] ? { image: item.images[0] } : {}),
+    });
     setJustAdded(item._id);
     if (addedTimer.current) clearTimeout(addedTimer.current);
     addedTimer.current = setTimeout(() => setJustAdded(null), 2500);
